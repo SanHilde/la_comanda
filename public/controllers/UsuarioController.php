@@ -11,13 +11,13 @@ class UsuarioController extends Usuario implements IApiUsable
       $dni = $parametros['dni'];
       $nombre = $parametros['nombre'];
       $clave = $parametros['clave'];
-      $tipo = $parametros['tipo'];
+    //   $tipo = $parametros['tipo'];
       $sector = $parametros['sector'];
   
       $usr = new Usuario();
       $usr->nombre = $nombre;
       $usr->clave = $clave;
-      $usr->tipo = $tipo;
+    //   $usr->tipo = $tipo;
       $usr->sector = $sector;
       $usr->crearUsuario($dni);
   
@@ -36,8 +36,7 @@ class UsuarioController extends Usuario implements IApiUsable
         $payload = json_encode($usuario);
 
         $response->getBody()->write($payload);
-        return $response
-          ->withHeader('Content-Type', 'application/json');
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function TraerTodos($request, $response, $args)
@@ -57,7 +56,7 @@ class UsuarioController extends Usuario implements IApiUsable
         $id = $parametros['dni']; 
         $nombre = $parametros['nombre'];
         $clave = $parametros['clave'];
-        $tipo = $parametros['tipo'];
+        // $tipo = $parametros['tipo'];
         $sector = $parametros['sector'];
         
         $usuario = Usuario::obtenerUsuarioPorId($id);
@@ -66,7 +65,7 @@ class UsuarioController extends Usuario implements IApiUsable
 
             $usuario->nombre = $nombre;
             $usuario->clave = $clave;
-            $usuario->tipo = $tipo;
+            // $usuario->tipo = $tipo;
             $usuario->sector = $sector;
         
             $usuario->modificarUsuario();
