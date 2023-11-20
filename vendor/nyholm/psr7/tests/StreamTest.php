@@ -1,9 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Tests\Nyholm\Psr7;
 
 use Nyholm\Psr7\Stream;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\StreamInterface;
 use Symfony\Component\ErrorHandler\ErrorHandler as SymfonyErrorHandler;
 
 /**
@@ -13,8 +14,8 @@ class StreamTest extends TestCase
 {
     public function testConstructorInitializesProperties()
     {
-        $handle = fopen('php://temp', 'r+');
-        fwrite($handle, 'data');
+        $handle = \fopen('php://temp', 'r+');
+        \fwrite($handle, 'data');
         $stream = Stream::create($handle);
         $this->assertTrue($stream->isReadable());
         $this->assertTrue($stream->isWritable());
@@ -26,18 +27,37 @@ class StreamTest extends TestCase
         $stream->close();
     }
 
+    public function testConstructorSeekWithStringContent()
+    {
+        $content = \str_repeat('Hello', 50000);
+        $stream = Stream::create($content);
+        $this->assertTrue($stream->isReadable());
+        $this->assertTrue($stream->isWritable());
+        $this->assertTrue($stream->isSeekable());
+        $this->assertEquals('Nyholm-Psr7-Zval://', $stream->getMetadata('uri'));
+        $this->assertTrue(\is_array($stream->getMetadata()));
+        $this->assertSame(250000, $stream->getSize());
+        $this->assertFalse($stream->eof());
+        $this->assertSame($content, $stream->getContents());
+        $stream->close();
+
+        $stream = Stream::create('Hello');
+        $this->assertEquals('php://memory', $stream->getMetadata('uri'));
+        $this->assertSame('Hello', $stream->getContents());
+    }
+
     public function testStreamClosesHandleOnDestruct()
     {
-        $handle = fopen('php://temp', 'r');
+        $handle = \fopen('php://temp', 'r');
         $stream = Stream::create($handle);
         unset($stream);
-        $this->assertFalse(is_resource($handle));
+        $this->assertFalse(\is_resource($handle));
     }
 
     public function testConvertsToString()
     {
-        $handle = fopen('php://temp', 'w+');
-        fwrite($handle, 'data');
+        $handle = \fopen('php://temp', 'w+');
+        \fwrite($handle, 'data');
         $stream = Stream::create($handle);
         $this->assertEquals('data', (string) $stream);
         $this->assertEquals('data', (string) $stream);
@@ -47,15 +67,15 @@ class StreamTest extends TestCase
     public function testBuildFromString()
     {
         $stream = Stream::create('data');
-        $this->assertEquals('', $stream->getContents());
+        $this->assertEquals('data', $stream->getContents());
         $this->assertEquals('data', $stream->__toString());
         $stream->close();
     }
 
     public function testGetsContents()
     {
-        $handle = fopen('php://temp', 'w+');
-        fwrite($handle, 'data');
+        $handle = \fopen('php://temp', 'w+');
+        \fwrite($handle, 'data');
         $stream = Stream::create($handle);
         $this->assertEquals('', $stream->getContents());
         $stream->seek(0);
@@ -65,8 +85,8 @@ class StreamTest extends TestCase
 
     public function testChecksEof()
     {
-        $handle = fopen('php://temp', 'w+');
-        fwrite($handle, 'data');
+        $handle = \fopen('php://temp', 'w+');
+        \fwrite($handle, 'data');
         $stream = Stream::create($handle);
         $this->assertFalse($stream->eof());
         $stream->read(4);
@@ -76,8 +96,8 @@ class StreamTest extends TestCase
 
     public function testGetSize()
     {
-        $size = filesize(__FILE__);
-        $handle = fopen(__FILE__, 'r');
+        $size = \filesize(__FILE__);
+        $handle = \fopen(__FILE__, 'r');
         $stream = Stream::create($handle);
         $this->assertEquals($size, $stream->getSize());
         // Load from cache
@@ -87,8 +107,8 @@ class StreamTest extends TestCase
 
     public function testEnsuresSizeIsConsistent()
     {
-        $h = fopen('php://temp', 'w+');
-        $this->assertEquals(3, fwrite($h, 'foo'));
+        $h = \fopen('php://temp', 'w+');
+        $this->assertEquals(3, \fwrite($h, 'foo'));
         $stream = Stream::create($h);
         $this->assertEquals(3, $stream->getSize());
         $this->assertEquals(4, $stream->write('test'));
@@ -99,20 +119,20 @@ class StreamTest extends TestCase
 
     public function testProvidesStreamPosition()
     {
-        $handle = fopen('php://temp', 'w+');
+        $handle = \fopen('php://temp', 'w+');
         $stream = Stream::create($handle);
         $this->assertEquals(0, $stream->tell());
         $stream->write('foo');
         $this->assertEquals(3, $stream->tell());
         $stream->seek(1);
         $this->assertEquals(1, $stream->tell());
-        $this->assertSame(ftell($handle), $stream->tell());
+        $this->assertSame(\ftell($handle), $stream->tell());
         $stream->close();
     }
 
     public function testCanDetachStream()
     {
-        $r = fopen('php://temp', 'w+');
+        $r = \fopen('php://temp', 'w+');
         $stream = Stream::create($r);
         $stream->write('foo');
         $this->assertTrue($stream->isReadable());
@@ -157,15 +177,15 @@ class StreamTest extends TestCase
             $throws(function ($stream) {
                 (string) $stream;
             });
-        } else {
+        } elseif (!(new \ReflectionMethod(StreamInterface::class, '__toString'))->hasReturnType()) {
             $this->assertSame('', (string) $stream);
 
             SymfonyErrorHandler::register();
             $throws(function ($stream) {
                 (string) $stream;
             });
-            restore_error_handler();
-            restore_exception_handler();
+            \restore_error_handler();
+            \restore_exception_handler();
         }
 
         $stream->close();
@@ -173,7 +193,7 @@ class StreamTest extends TestCase
 
     public function testCloseClearProperties()
     {
-        $handle = fopen('php://temp', 'r+');
+        $handle = \fopen('php://temp', 'r+');
         $stream = Stream::create($handle);
         $stream->close();
 
@@ -186,9 +206,9 @@ class StreamTest extends TestCase
 
     public function testUnseekableStreamWrapper()
     {
-        stream_wrapper_register('nyholm-psr7-test', TestStreamWrapper::class);
-        $handle = fopen('nyholm-psr7-test://', 'r');
-        stream_wrapper_unregister('nyholm-psr7-test');
+        \stream_wrapper_register('nyholm-psr7-test', TestStreamWrapper::class);
+        $handle = \fopen('nyholm-psr7-test://', 'r');
+        \stream_wrapper_unregister('nyholm-psr7-test');
 
         $stream = Stream::create($handle);
         $this->assertFalse($stream->isSeekable());
@@ -204,7 +224,7 @@ class TestStreamWrapper
         return true;
     }
 
-    public function stream_seek(int $offset, int $whence = SEEK_SET)
+    public function stream_seek(int $offset, int $whence = \SEEK_SET)
     {
         return false;
     }

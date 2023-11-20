@@ -8,13 +8,10 @@ use InvalidArgumentException;
 use Laminas\Diactoros\Response\HtmlResponse;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\StreamInterface;
-use Prophecy\PhpUnit\ProphecyTrait;
 
 class HtmlResponseTest extends TestCase
 {
-    use ProphecyTrait;
-
-    public function testConstructorAcceptsHtmlString()
+    public function testConstructorAcceptsHtmlString(): void
     {
         $body = '<html>Uh oh not found</html>';
 
@@ -23,9 +20,9 @@ class HtmlResponseTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    public function testConstructorAllowsPassingStatus()
+    public function testConstructorAllowsPassingStatus(): void
     {
-        $body = '<html>Uh oh not found</html>';
+        $body   = '<html>Uh oh not found</html>';
         $status = 404;
 
         $response = new HtmlResponse($body, $status);
@@ -33,12 +30,12 @@ class HtmlResponseTest extends TestCase
         $this->assertSame($body, (string) $response->getBody());
     }
 
-    public function testConstructorAllowsPassingHeaders()
+    public function testConstructorAllowsPassingHeaders(): void
     {
-        $body = '<html>Uh oh not found</html>';
-        $status = 404;
+        $body    = '<html>Uh oh not found</html>';
+        $status  = 404;
         $headers = [
-            'x-custom' => [ 'foo-bar' ],
+            'x-custom' => ['foo-bar'],
         ];
 
         $response = new HtmlResponse($body, $status, $headers);
@@ -48,15 +45,15 @@ class HtmlResponseTest extends TestCase
         $this->assertSame($body, (string) $response->getBody());
     }
 
-    public function testAllowsStreamsForResponseBody()
+    public function testAllowsStreamsForResponseBody(): void
     {
-        $stream = $this->prophesize(StreamInterface::class);
-        $body   = $stream->reveal();
+        $body     = $this->createStub(StreamInterface::class);
         $response = new HtmlResponse($body);
         $this->assertSame($body, $response->getBody());
     }
 
-    public function invalidHtmlContent()
+    /** @return array<non-empty-string, array{mixed}> */
+    public function invalidHtmlContent(): array
     {
         return [
             'null'       => [null],
@@ -74,16 +71,17 @@ class HtmlResponseTest extends TestCase
     /**
      * @dataProvider invalidHtmlContent
      */
-    public function testRaisesExceptionforNonStringNonStreamBodyContent($body)
+    public function testRaisesExceptionForNonStringNonStreamBodyContent(mixed $body): void
     {
         $this->expectException(InvalidArgumentException::class);
 
+        /** @psalm-suppress MixedArgument */
         new HtmlResponse($body);
     }
 
-    public function testConstructorRewindsBodyStream()
+    public function testConstructorRewindsBodyStream(): void
     {
-        $html = '<p>test data</p>';
+        $html     = '<p>test data</p>';
         $response = new HtmlResponse($html);
 
         $actual = $response->getBody()->getContents();

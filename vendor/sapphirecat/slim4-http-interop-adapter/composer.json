@@ -9,14 +9,14 @@
         "files": ["setup.php"]
     },
     "require": {
-        "php": "^7.1 || ^8.0",
-        "slim/slim": "^4.0",
+        "php": "^7.4 || ^8.0",
+        "slim/slim": "^4.11",
         "http-interop/http-factory-guzzle": "^1"
     },
     "require-dev": {
         "phpunit/phpunit": "^7 || ^8 || ^9",
         "friendsofphp/php-cs-fixer": "^3",
-        "vimeo/psalm": "^4"
+        "vimeo/psalm": "^4 || ^5"
     },
     "license": "MIT",
     "authors": [
@@ -28,6 +28,6 @@
     "scripts": {
         "fix": ["@php php-cs-fixer fix"],
         "psalm": ["@php psalm"],
-	"test": ["@php phpunit tests"]
+        "test": ["@php phpunit tests"]
     }
 }

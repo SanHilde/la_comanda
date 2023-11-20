@@ -42,11 +42,11 @@ class RoutingMiddlewareTest extends TestCase
     public function testRouteIsStoredOnSuccessfulMatch()
     {
         $responseFactory = $this->getResponseFactory();
-        $mw = (function (ServerRequestInterface $request) use ($responseFactory) {
+        $middleware = (function (ServerRequestInterface $request) use ($responseFactory) {
             // route is available
             $route = $request->getAttribute(RouteContext::ROUTE);
             $this->assertNotNull($route);
-            $this->assertEquals('foo', $route->getArgument('name'));
+            $this->assertSame('foo', $route->getArgument('name'));
 
             // routeParser is available
             $routeParser = $request->getAttribute(RouteContext::ROUTE_PARSER);
@@ -62,7 +62,7 @@ class RoutingMiddlewareTest extends TestCase
         $routeCollector = $this->getRouteCollector();
         $routeParser = new RouteParser($routeCollector);
         $routeResolver = new RouteResolver($routeCollector);
-        $mw2 = new RoutingMiddleware($routeResolver, $routeParser);
+        $routingMiddleware = new RoutingMiddleware($routeResolver, $routeParser);
 
         $request = $this->createServerRequest('https://example.com:443/hello/foo', 'GET');
 
@@ -70,8 +70,8 @@ class RoutingMiddlewareTest extends TestCase
             $this->createMock(RequestHandlerInterface::class),
             null
         );
-        $middlewareDispatcher->addCallable($mw);
-        $middlewareDispatcher->addMiddleware($mw2);
+        $middlewareDispatcher->addCallable($middleware);
+        $middlewareDispatcher->addMiddleware($routingMiddleware);
         $middlewareDispatcher->handle($request);
     }
 
@@ -108,7 +108,7 @@ class RoutingMiddlewareTest extends TestCase
             // routingResults is available
             $routingResults = $request->getAttribute(RouteContext::ROUTING_RESULTS);
             $this->assertInstanceOf(RoutingResults::class, $routingResults);
-            $this->assertEquals(Dispatcher::METHOD_NOT_ALLOWED, $routingResults->getRouteStatus());
+            $this->assertSame(Dispatcher::METHOD_NOT_ALLOWED, $routingResults->getRouteStatus());
         }
     }
 
@@ -145,7 +145,7 @@ class RoutingMiddlewareTest extends TestCase
             // routingResults is available
             $routingResults = $request->getAttribute(RouteContext::ROUTING_RESULTS);
             $this->assertInstanceOf(RoutingResults::class, $routingResults);
-            $this->assertEquals(Dispatcher::NOT_FOUND, $routingResults->getRouteStatus());
+            $this->assertSame(Dispatcher::NOT_FOUND, $routingResults->getRouteStatus());
         }
     }
 
@@ -184,8 +184,8 @@ class RoutingMiddlewareTest extends TestCase
 
         // Create the routing middleware with the `RouteResolverInterface` defined
         // above. Perform the routing, which should throw the RuntimeException.
-        $m = new RoutingMiddleware($routeResolver, $routeParser);
+        $middleware = new RoutingMiddleware($routeResolver, $routeParser);
         /** @noinspection PhpUnhandledExceptionInspection */
-        $m->performRouting($request);
+        $middleware->performRouting($request);
     }
 }

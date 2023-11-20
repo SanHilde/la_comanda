@@ -7,21 +7,31 @@ class UsuarioController extends Usuario implements IApiUsable
   public function CargarUno($request, $response, $args)
   {
       $parametros = $request->getParsedBody();
-  
-      $dni = $parametros['dni'];
-      $nombre = $parametros['nombre'];
-      $clave = $parametros['clave'];
-    //   $tipo = $parametros['tipo'];
-      $sector = $parametros['sector'];
-  
-      $usr = new Usuario();
-      $usr->nombre = $nombre;
-      $usr->clave = $clave;
-    //   $usr->tipo = $tipo;
-      $usr->sector = $sector;
-      $usr->crearUsuario($dni);
-  
-      $payload = json_encode(array("mensaje" => "Usuario creado con éxito"));
+    if ( isset($parametros['nombre']) && isset($parametros['clave']) && isset($parametros['sector']) )
+    {
+        $nombre = $parametros['nombre'];
+        $clave = $parametros['clave'];
+        $sector = $parametros['sector'];
+        if($sector == "cocina" || $sector == "socio" || $sector == "bartender" || $sector == "candybar" || $sector == "cervecero" || $sector == "mozo")
+        {
+          $usr = new Usuario();
+          $usr->nombre = $nombre;
+          $usr->clave = $clave;
+        //   $usr->tipo = $tipo;
+          $usr->sector = $sector;
+          $usr->crearUno();
+      
+          $payload = json_encode(array("mensaje" => "Usuario creado con éxito"));
+        } else
+        {
+          $payload = json_encode(array("mensaje" => "Sector inexistente, debe ser: socio, cocina, bartender, candybar,cervecero o mozo"));
+        }
+       
+    } else
+    {
+      $payload = json_encode(array("mensaje" => "Falta ingresar un parametro"));
+    }
+      
   
       $response->getBody()->write($payload);
       return $response->withHeader('Content-Type', 'application/json');
@@ -53,42 +63,65 @@ class UsuarioController extends Usuario implements IApiUsable
     {
         $parametros = $request->getParsedBody();
         
-        $id = $parametros['dni']; 
-        $nombre = $parametros['nombre'];
-        $clave = $parametros['clave'];
-        // $tipo = $parametros['tipo'];
-        $sector = $parametros['sector'];
-        
-        $usuario = Usuario::obtenerUsuarioPorId($id);
-        
-        if ($usuario) {
-
-            $usuario->nombre = $nombre;
-            $usuario->clave = $clave;
-            // $usuario->tipo = $tipo;
-            $usuario->sector = $sector;
-        
-            $usuario->modificarUsuario();
-        
-            $payload = json_encode(array("mensaje" => "Usuario modificado con éxito"));
-        } else {
-            $payload = json_encode(array("mensaje" => "Usuario no encontrado"));
+        if(isset($parametros['usuarioNuevo']) || isset($parametros['clave']) || isset($parametros['sector']) || isset($parametros['usuario']) )
+        {
+          $nombre = $parametros['usuarioNuevo'];
+          $clave = $parametros['clave'];
+          // $tipo = $parametros['tipo'];
+          $sector = $parametros['sector'];
+          
+          $usuario = Usuario::obtenerUsuario($parametros['usuario']);
+          
+          if ($usuario) {
+  
+              $usuario->nombre = $nombre ?? $usuario->nombre;
+              $usuario->clave = $clave ?? $usuario->clave ;
+              // $usuario->tipo = $tipo;
+              $usuario->sector = $sector ??  $usuario->sector;
+              if($sector == "cocina" || $sector == "socio" || $sector == "bartender" || $sector == "candybar" || $sector == "cervecero" || $sector == "mozo")
+              {
+              $usuario->modificarUsuario();
+          
+              $payload = json_encode(array("mensaje" => "Usuario modificado con éxito"));
+              }else
+              {
+                $payload = json_encode(array("mensaje" => "Sector inexistente, debe ser: socio, cocina, bartender, candybar,cervecero o mozo"));
+              }
+            } else {
+              $payload = json_encode(array("mensaje" => "Usuario no encontrado"));
+          }
+        }else
+        {
+          $payload = json_encode(array("mensaje" => "Falta ingresar parametros"));
         }
+
+
         
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }    
-    
 
     public function BorrarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
-
-        $usuarioId = $parametros['dni'];
-        Usuario::borrarUsuario($usuarioId);
-
-        $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
-
+      if(isset($parametros['usuario']))
+      {
+        $usuario = Usuario::obtenerUsuario($parametros['usuario']);
+          if ($usuario) {
+            if(Usuario::borrarUsuario($usuario->id))
+            {
+              $payload = json_encode(array("mensaje" => "Usuario borrado con exito"));
+            }else
+            {
+              $payload = json_encode(array("mensaje" => "Error al borrar el usuario"));
+            }
+          } else {
+              $payload = json_encode(array("mensaje" => "Usuario no encontrado"));
+          }
+      }else {
+        $payload = json_encode(array("mensaje" => "Falta ingresar ID"));
+      }
+      
         $response->getBody()->write($payload);
         return $response
           ->withHeader('Content-Type', 'application/json');

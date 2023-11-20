@@ -23,6 +23,14 @@ class ResponseTest extends TestCase
         $this->assertSame('', (string) $r->getBody());
     }
 
+    public function testDefaultConstructorSeekBody()
+    {
+        $r = new Response(200, [], 'Hello');
+        $this->assertSame(200, $r->getStatusCode());
+        $this->assertInstanceOf(StreamInterface::class, $r->getBody());
+        $this->assertSame('Hello', $r->getBody()->getContents());
+    }
+
     public function testCanConstructWithStatusCode()
     {
         $r = new Response(404);
@@ -248,7 +256,7 @@ class ResponseTest extends TestCase
         $this->assertSame($r, $r->withoutHeader('foo'));
     }
 
-    public function trimmedHeaderValues()
+    public static function trimmedHeaderValues()
     {
         return [
             [new Response(200, ['OWS' => " \t \tFoo\t \t "])],
@@ -265,5 +273,36 @@ class ResponseTest extends TestCase
         $this->assertSame(['OWS' => ['Foo']], $r->getHeaders());
         $this->assertSame('Foo', $r->getHeaderLine('OWS'));
         $this->assertSame(['Foo'], $r->getHeader('OWS'));
+    }
+
+    /**
+     * @dataProvider invalidWithHeaderProvider
+     */
+    public function testWithInvalidHeader($header, $headerValue, $expectedMessage): void
+    {
+        $r = new Response();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedMessage);
+        $r->withHeader($header, $headerValue);
+    }
+
+    public function invalidWithHeaderProvider(): iterable
+    {
+        return [
+            ['foo', [], 'Header values must be a string or an array of strings, empty array given'],
+            ['foo', new \stdClass(),  'Header values must be RFC 7230 compatible strings'],
+            [[], 'foo', 'Header name must be an RFC 7230 compatible string'],
+            [false, 'foo', 'Header name must be an RFC 7230 compatible string'],
+            [new \stdClass(), 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ['', 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["Content-Type\r\n\r\n", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["Content-Type\r\n", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["Content-Type\n", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["\r\nContent-Type", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["\nContent-Type", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["\n", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["\r\n", 'foo', 'Header name must be an RFC 7230 compatible string'],
+            ["\t", 'foo', 'Header name must be an RFC 7230 compatible string'],
+        ];
     }
 }

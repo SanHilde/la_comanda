@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Tests\Nyholm\Psr7;
 
@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
  */
 class UriTest extends TestCase
 {
-    const RFC3986_BASE = 'http://a/b/c/d;p?q';
+    public const RFC3986_BASE = 'http://a/b/c/d;p?q';
 
     public function testParsesProvidedUri()
     {
@@ -49,6 +49,28 @@ class UriTest extends TestCase
         $this->assertSame('https://user:pass@example.com:8080/path/123?q=abc#test', (string) $uri);
     }
 
+    public function testSupportsUrlEncodedValues()
+    {
+        $uri = (new Uri())
+            ->withScheme('https')
+            ->withUserInfo('foo\user%3D=', 'pass%3D=')
+            ->withHost('example.com')
+            ->withPort(8080)
+            ->withPath('/path/123')
+            ->withQuery('q=abc')
+            ->withFragment('test');
+
+        $this->assertSame('https', $uri->getScheme());
+        $this->assertSame('foo\user%3D%3D:pass%3D%3D@example.com:8080', $uri->getAuthority());
+        $this->assertSame('foo\user%3D%3D:pass%3D%3D', $uri->getUserInfo());
+        $this->assertSame('example.com', $uri->getHost());
+        $this->assertSame(8080, $uri->getPort());
+        $this->assertSame('/path/123', $uri->getPath());
+        $this->assertSame('q=abc', $uri->getQuery());
+        $this->assertSame('test', $uri->getFragment());
+        $this->assertSame('https://foo\user%3D%3D:pass%3D%3D@example.com:8080/path/123?q=abc#test', (string) $uri);
+    }
+
     /**
      * @dataProvider getValidUris
      */
@@ -59,7 +81,7 @@ class UriTest extends TestCase
         $this->assertSame($input, (string) $uri);
     }
 
-    public function getValidUris()
+    public static function getValidUris()
     {
         return [
             ['urn:path-rootless'],
@@ -99,7 +121,7 @@ class UriTest extends TestCase
         new Uri($invalidUri);
     }
 
-    public function getInvalidUris()
+    public static function getInvalidUris()
     {
         return [
             // parse_url() requires the host component which makes sense for http(s)
@@ -136,7 +158,7 @@ class UriTest extends TestCase
 
     public function testParseUriPortCanBeZero()
     {
-        if (version_compare(PHP_VERSION, '7.4.12') < 0) {
+        if (\version_compare(\PHP_VERSION, '7.4.12') < 0) {
             self::markTestSkipped('Skipping this on low PHP versions.');
         }
 
@@ -368,7 +390,7 @@ class UriTest extends TestCase
         $this->assertSame('', $uri->getAuthority());
     }
 
-    public function uriComponentsEncodingProvider()
+    public static function uriComponentsEncodingProvider()
     {
         $unreserved = 'a-zA-Z0-9.-_~!$&\'()*+,;=:@';
 
@@ -440,7 +462,7 @@ class UriTest extends TestCase
         // If the path is rootless and an authority is present, the path MUST
         // be prefixed by "/".
         $uri = (new Uri())->withPath('foo')->withHost('example.com');
-        $this->assertSame('foo', $uri->getPath());
+        $this->assertSame('/foo', $uri->getPath());
         // concatenating a relative path with a host doesn't work: "//example.comfoo" would be wrong
         $this->assertSame('//example.com/foo', (string) $uri);
     }
@@ -450,7 +472,7 @@ class UriTest extends TestCase
         // If the path is starting with more than one "/" and no authority is
         // present, the starting slashes MUST be reduced to one.
         $uri = (new Uri())->withPath('//foo');
-        $this->assertSame('//foo', $uri->getPath());
+        $this->assertSame('/foo', $uri->getPath());
         // URI "//foo" would be interpreted as network reference and thus change the original path to the host
         $this->assertSame('/foo', (string) $uri);
     }

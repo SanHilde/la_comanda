@@ -15,11 +15,12 @@ jobs:
         operating-system:
           - 'ubuntu-latest'
         php-version:
-          - '7.1'
           - '7.2'
           - '7.3'
           - '7.4'
           - '8.0'
+          - '8.1'
+          - '8.2'
         include:
           - operating-system: 'windows-latest'
             php-version: '7.4'
@@ -28,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install PHP with extensions
         uses: shivammathur/setup-php@v2
@@ -62,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install PHP with extensions
         uses: shivammathur/setup-php@v2
@@ -75,8 +76,3 @@ jobs:
 
       - name: Run PHPUnit
         run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
-
-      - name: Upload coverage
-        run: |
-          wget https://scrutinizer-ci.com/ocular.phar
-          php ocular.phar code-coverage:upload --format=php-clover coverage.xml

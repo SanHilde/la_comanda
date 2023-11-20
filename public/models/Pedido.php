@@ -11,12 +11,13 @@ class Pedido
     public $fecha; // Fecha y hora del pedido (puede ser un objeto DateTime)
     public $estado; // Estado del pedido (por ejemplo, pendiente, en proceso, entregado)
     public $sector;
+    public $tiempoPreparacion;
 
 
-    public function crearPedido()
+    public function crearUno()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (codigoPedido, producto, cantidad, mesa, mozo, fecha, estado, sector) VALUES (:codigoPedido, :producto, :cantidad, :mesa, :mozo, :fecha, :estado, :sector)");
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO pedidos (codigoPedido, producto, cantidad, mesa, mozo, fecha, estado, sector,tiempoPreparacion) VALUES (:codigoPedido, :producto, :cantidad, :mesa, :mozo, :fecha, :estado, :sector, :tiempoPreparacion)");
         // echo($this->producto);
         $consulta->bindValue(':codigoPedido', $this->codigoPedido, PDO::PARAM_STR);
         $consulta->bindValue(':producto', $this->producto, PDO::PARAM_INT);
@@ -26,9 +27,9 @@ class Pedido
         $consulta->bindValue(':sector', $this->sector, PDO::PARAM_STR);
         $consulta->bindValue(':fecha', $this->fecha, PDO::PARAM_STR); // Suponiendo que $fecha es un string en formato adecuado.
         $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
+        $consulta->bindValue(':tiempoPreparacion', $this->tiempoPreparacion, PDO::PARAM_INT);
         
         $consulta->execute();
-        var_dump($consulta);
         return $objAccesoDatos->obtenerUltimoId();
     }
     
@@ -40,7 +41,7 @@ class Pedido
         
         // Consulta base
         $bandera=0;
-        $consultaString = "SELECT p.id, p.codigoPedido, p.cantidad, p.mesa, u.nombre as mozo, p.fecha, p.estado, p.sector, pr.descripcion as producto
+        $consultaString = "SELECT p.id, p.codigoPedido, p.cantidad, p.mesa, u.nombre as mozo, p.fecha, p.estado, p.sector, pr.descripcion as producto,p.tiempoPreparacion
         FROM pedidos p
         INNER JOIN productos pr ON p.producto = pr.id
         INNER JOIN usuarios u ON p.mozo = u.id";
@@ -74,7 +75,7 @@ class Pedido
     public static function obtenerPedido($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigoPedido, producto, cantidad, mesa, mozo, fecha, estado,sector FROM pedidos WHERE id = :id");
+        $consulta = $objAccesoDatos->prepararConsulta("SELECT id, codigoPedido, producto, cantidad, mesa, mozo, fecha, estado,sector,tiempoPreparacion FROM pedidos WHERE id = :id");
         $consulta->bindValue(':id', $id, PDO::PARAM_STR);
         $consulta->execute();
     
@@ -86,7 +87,8 @@ class Pedido
     public function modificarPedido()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("UPDATE pedidos SET producto = :producto, cantidad = :cantidad, mesa = :mesa, mozo = :mozo, fecha = :fecha, estado = :estado, sector = :sector WHERE codigoPedido = :codigoPedido");
+        $consulta = $objAccesoDatos->prepararConsulta("UPDATE pedidos SET producto = :producto, cantidad = :cantidad, mesa = :mesa, mozo = :mozo, fecha = :fecha, estado = :estado, sector = :sector, codigoPedido = :codigoPedido , tiempoPreparacion = :tiempoPreparacion WHERE id = :id");
+        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
         $consulta->bindValue(':producto', $this->producto, PDO::PARAM_STR);
         $consulta->bindValue(':cantidad', $this->cantidad, PDO::PARAM_INT);
         $consulta->bindValue(':mesa', $this->mesa, PDO::PARAM_INT);
@@ -94,18 +96,19 @@ class Pedido
         $consulta->bindValue(':fecha', $this->fecha, PDO::PARAM_STR);
         $consulta->bindValue(':estado', $this->estado, PDO::PARAM_INT);
         $consulta->bindValue(':sector', $this->sector, PDO::PARAM_STR);
-        $consulta->bindValue(':codigoPedido', $this->codigoPedido, PDO::PARAM_INT);
-        $consulta->execute();
+        $consulta->bindValue(':codigoPedido', $this->codigoPedido, PDO::PARAM_STR);
+        $consulta->bindValue(':tiempoPreparacion', $this->tiempoPreparacion, PDO::PARAM_INT);
+        return $consulta->execute();
     }
     
     
 
-    public function borrarPedido()
+    public function borrarPedido($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("DELETE FROM pedidos WHERE codigoPedido = :codigoPedido");
-        $consulta->bindValue(':codigoPedido', $this->codigoPedido, PDO::PARAM_INT);
-        $consulta->execute();
+        $consulta = $objAccesoDatos->prepararConsulta("UPDATE pedidos SET estado = 'dado de baja' WHERE id = :id");
+        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
+        return $consulta->execute();
     }
     
     

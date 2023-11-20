@@ -47,7 +47,7 @@ class ResponseEmitterTest extends TestCase
         HeaderStack::reset();
     }
 
-    public function testRespond()
+    public function testRespond(): void
     {
         $response = $this->createResponse();
         $response->getBody()->write('Hello');
@@ -58,7 +58,7 @@ class ResponseEmitterTest extends TestCase
         $this->expectOutputString('Hello');
     }
 
-    public function testRespondWithPaddedStreamFilterOutput()
+    public function testRespondWithPaddedStreamFilterOutput(): void
     {
         $availableFilter = stream_get_filters();
 
@@ -103,7 +103,7 @@ class ResponseEmitterTest extends TestCase
         }
     }
 
-    public function testRespondIndeterminateLength()
+    public function testRespondIndeterminateLength(): void
     {
         $stream = fopen('php://temp', 'r+');
         fwrite($stream, 'Hello');
@@ -112,7 +112,7 @@ class ResponseEmitterTest extends TestCase
         $body = $this
             ->getMockBuilder(MockStream::class)
             ->setConstructorArgs([$stream])
-            ->setMethods(['getSize'])
+            ->onlyMethods(['getSize'])
             ->getMock();
         $body->method('getSize')->willReturn(null);
 
@@ -123,7 +123,7 @@ class ResponseEmitterTest extends TestCase
         $this->expectOutputString('Hello');
     }
 
-    public function testResponseWithStreamReadYieldingLessBytesThanAsked()
+    public function testResponseWithStreamReadYieldingLessBytesThanAsked(): void
     {
         $body = new SmallChunksStream();
         $response = $this->createResponse()->withBody($body);
@@ -134,7 +134,7 @@ class ResponseEmitterTest extends TestCase
         $this->expectOutputString(str_repeat('.', $body->getSize()));
     }
 
-    public function testResponseReplacesPreviouslySetHeaders()
+    public function testResponseReplacesPreviouslySetHeaders(): void
     {
         $response = $this
             ->createResponse(200, 'OK')
@@ -144,15 +144,15 @@ class ResponseEmitterTest extends TestCase
         $responseEmitter->emit($response);
 
         $expectedStack = [
-            ['header' => 'HTTP/1.1 200 OK', 'replace' => true, 'status_code' => 200],
             ['header' => 'X-Foo: baz1', 'replace' => true, 'status_code' => null],
             ['header' => 'X-Foo: baz2', 'replace' => false, 'status_code' => null],
+            ['header' => 'HTTP/1.1 200 OK', 'replace' => true, 'status_code' => 200],
         ];
 
         $this->assertSame($expectedStack, HeaderStack::stack());
     }
 
-    public function testResponseDoesNotReplacePreviouslySetSetCookieHeaders()
+    public function testResponseDoesNotReplacePreviouslySetSetCookieHeaders(): void
     {
         $response = $this
             ->createResponse(200, 'OK')
@@ -162,15 +162,15 @@ class ResponseEmitterTest extends TestCase
         $responseEmitter->emit($response);
 
         $expectedStack = [
-            ['header' => 'HTTP/1.1 200 OK', 'replace' => true, 'status_code' => 200],
             ['header' => 'set-cOOkie: foo=bar', 'replace' => false, 'status_code' => null],
             ['header' => 'set-cOOkie: bar=baz', 'replace' => false, 'status_code' => null],
+            ['header' => 'HTTP/1.1 200 OK', 'replace' => true, 'status_code' => 200],
         ];
 
         $this->assertSame($expectedStack, HeaderStack::stack());
     }
 
-    public function testIsResponseEmptyWithNonEmptyBodyAndTriggeringStatusCode()
+    public function testIsResponseEmptyWithNonEmptyBodyAndTriggeringStatusCode(): void
     {
         $body = $this->createStream('Hello');
         $response = $this
@@ -181,7 +181,7 @@ class ResponseEmitterTest extends TestCase
         $this->assertTrue($responseEmitter->isResponseEmpty($response));
     }
 
-    public function testIsResponseEmptyDoesNotReadAllDataFromNonEmptySeekableResponse()
+    public function testIsResponseEmptyDoesNotReadAllDataFromNonEmptySeekableResponse(): void
     {
         $body = $this->createStream('Hello');
         $response = $this
@@ -195,7 +195,7 @@ class ResponseEmitterTest extends TestCase
         $this->assertFalse($body->eof());
     }
 
-    public function testIsResponseEmptyDoesNotDrainNonSeekableResponseWithContent()
+    public function testIsResponseEmptyDoesNotDrainNonSeekableResponseWithContent(): void
     {
         $resource = popen('echo 12', 'r');
         $body = $this->getStreamFactory()->createStreamFromResource($resource);
@@ -208,7 +208,7 @@ class ResponseEmitterTest extends TestCase
         $this->assertSame('12', trim((string) $body));
     }
 
-    public function testAvoidReadFromSlowStreamAccordingToStatus()
+    public function testAvoidReadFromSlowStreamAccordingToStatus(): void
     {
         $body = new SlowPokeStream();
         $response = $this
@@ -222,7 +222,7 @@ class ResponseEmitterTest extends TestCase
         $this->expectOutputString('');
     }
 
-    public function testIsResponseEmptyWithEmptyBody()
+    public function testIsResponseEmptyWithEmptyBody(): void
     {
         $response = $this->createResponse(200);
         $responseEmitter = new ResponseEmitter();
@@ -230,7 +230,7 @@ class ResponseEmitterTest extends TestCase
         $this->assertTrue($responseEmitter->isResponseEmpty($response));
     }
 
-    public function testIsResponseEmptyWithZeroAsBody()
+    public function testIsResponseEmptyWithZeroAsBody(): void
     {
         $body = $this->createStream('0');
         $response = $this
@@ -241,7 +241,7 @@ class ResponseEmitterTest extends TestCase
         $this->assertFalse($responseEmitter->isResponseEmpty($response));
     }
 
-    public function testWillHandleInvalidConnectionStatusWithADeterminateBody()
+    public function testWillHandleInvalidConnectionStatusWithADeterminateBody(): void
     {
         $body = $this->getStreamFactory()->createStreamFromResource(fopen('php://temp', 'r+'));
         $body->write('Hello!' . "\n");
@@ -264,7 +264,7 @@ class ResponseEmitterTest extends TestCase
         unset($GLOBALS['connection_status_return']);
     }
 
-    public function testWillHandleInvalidConnectionStatusWithAnIndeterminateBody()
+    public function testWillHandleInvalidConnectionStatusWithAnIndeterminateBody(): void
     {
         $body = $this->getStreamFactory()->createStreamFromResource(fopen('php://input', 'r+'));
 

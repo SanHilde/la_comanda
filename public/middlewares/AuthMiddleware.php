@@ -6,126 +6,46 @@ use Slim\Psr7\Response;
 
 class AuthMiddleware
 {
+    /**
+     * Example middleware invokable class
+     *
+     * @param  ServerRequest  $request PSR-7 request
+     * @param  RequestHandler $handler PSR-15 request handler
+     *
+     * @return Response
+     */
     public function __invoke(Request $request, RequestHandler $handler): Response
     {   
-        $parametros = $request->getParsedBody();
-
-        $sector = $parametros['sector'];
+        $header = $request->getHeaderLine('Authorization');
+        $token = trim(explode("Bearer", $header)[1]);
         $response = new Response();
-
-        if ($sector === 'admin') {
+        try {
+            AutentificadorJWT::VerificarToken($token);
+            // $response = $handler->handle($request);
             $respuesta = $handler->handle($request);
             $existingContent = json_decode($respuesta->getBody());
             $payload = json_encode($existingContent);
             $response->getBody()->write($payload);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array("mensaje" => "Acceso denegado, no es socio"));
-            $response->getBody()->write($payload);
-        }
-        
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-    
-    public function authSocio(Request $request, RequestHandler $handler): Response
-    {   
-        $parametros = $request->getParsedBody();
-        $usuario = $request->getAttribute('usuario');
-        $response = new Response();
-
-        if ($usuario->sector == "socio")
-        {
-            $respuesta = $handler->handle($request);
-            $existingContent = json_decode($respuesta->getBody());
-            $payload = json_encode($existingContent);
-            $response->getBody()->write($payload);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array("mensaje" => "Acceso denegado, no es socio"));
-            $response->getBody()->write($payload);
-        }
-        
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-
-    public function authMozo(Request $request, RequestHandler $handler): Response
-    {   
-        $parametros = $request->getParsedBody();
-        $usuario = $request->getAttribute('usuario');
-        $response = new Response();  
-        if ($usuario->sector == "mozo" || $usuario->sector == "socio")
-        {
-            $respuesta = $handler->handle($request);
-            $existingContent = json_decode($respuesta->getBody());
-            $payload = json_encode($existingContent);
-            $response->getBody()->write($payload);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array("mensaje" => "Acceso denegado, no es mozo"));
+        } catch (Exception $e) {
+            $payload = json_encode(array('mensaje' => 'ERROR: Hubo un error con el TOKEN'));
             $response->getBody()->write($payload);
         }
         return $response->withHeader('Content-Type', 'application/json');
     }
 
-    public function authBartender(Request $request, RequestHandler $handler): Response
-    {   
-        $parametros = $request->getParsedBody();
-        $usuario = $request->getAttribute('usuario');
-        $response = new Response();
+    public static function verificarToken(Request $request, RequestHandler $handler): Response
+    {
+        $header = $request->getHeaderLine('Authorization');
+        $token = trim(explode("Bearer", $header)[1]);
 
-        if ($usuario->sector == "bartender" || $usuario->sector == "socio")
-        {
-            $respuesta = $handler->handle($request);
-            $existingContent = json_decode($respuesta->getBody());
-            $payload = json_encode($existingContent);
-            $response->getBody()->write($payload);
-        } else {
+        try {
+            AutentificadorJWT::VerificarToken($token);
+            $response = $handler->handle($request);
+        } catch (Exception $e) {
             $response = new Response();
-            $payload = json_encode(array("mensaje" => "Acceso denegado, no es bartender"));
+            $payload = json_encode(array('mensaje' => 'ERROR: Hubo un error con el TOKEN'));
             $response->getBody()->write($payload);
         }
-        
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-    public function authCocinero(Request $request, RequestHandler $handler): Response
-    {   
-        $parametros = $request->getParsedBody();
-        $usuario = $request->getAttribute('usuario');
-        $response = new Response();
-
-        if ($usuario->sector == "cocinero" || $usuario->sector == "socio")
-        {
-            $respuesta = $handler->handle($request);
-            $existingContent = json_decode($respuesta->getBody());
-            $payload = json_encode($existingContent);
-            $response->getBody()->write($payload);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array("mensaje" => "Acceso denegado, no es cocinero"));
-            $response->getBody()->write($payload);
-        }
-        
-        return $response->withHeader('Content-Type', 'application/json');
-    }
-    public function authCervecero(Request $request, RequestHandler $handler): Response
-    {   
-        $parametros = $request->getParsedBody();
-        $usuario = $request->getAttribute('usuario');
-        $response = new Response();
-
-        if ($usuario->sector == "cervecero" || $usuario->sector == "socio")
-        {
-            $respuesta = $handler->handle($request);
-            $existingContent = json_decode($respuesta->getBody());
-            $payload = json_encode($existingContent);
-            $response->getBody()->write($payload);
-        } else {
-            $response = new Response();
-            $payload = json_encode(array("mensaje" => "Acceso denegado, no es cervecero"));
-            $response->getBody()->write($payload);
-        }
-        
         return $response->withHeader('Content-Type', 'application/json');
     }
 }
-

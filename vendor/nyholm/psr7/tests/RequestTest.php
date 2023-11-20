@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Tests\Nyholm\Psr7;
 
@@ -207,14 +207,14 @@ class RequestTest extends TestCase
         $r = new Request(
             'GET', '', [
                      '200' => 'NumericHeaderValue',
-                     '0'   => 'NumericHeaderValueZero',
+                     '0' => 'NumericHeaderValueZero',
                  ]
         );
 
         $this->assertSame(
             [
                 '200' => ['NumericHeaderValue'],
-                '0'   => ['NumericHeaderValueZero'],
+                '0' => ['NumericHeaderValueZero'],
             ],
             $r->getHeaders()
         );
@@ -231,7 +231,7 @@ class RequestTest extends TestCase
         $this->assertSame(
             [
                 '200' => ['NumericHeaderValue', 'A', 'B'],
-                '0'   => ['NumericHeaderValueZero'],
+                '0' => ['NumericHeaderValueZero'],
                 '300' => ['NumericHeaderValue2'],
             ],
             $r->getHeaders()
@@ -241,7 +241,7 @@ class RequestTest extends TestCase
         $this->assertSame(
             [
                 '200' => ['NumericHeaderValue', 'A', 'B'],
-                '0'   => ['NumericHeaderValueZero'],
+                '0' => ['NumericHeaderValueZero'],
             ],
             $r->getHeaders()
         );
@@ -263,7 +263,7 @@ class RequestTest extends TestCase
     public function testCannotHaveHeaderWithEmptyName()
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Header name must be an RFC 7230 compatible string.');
+        $this->expectExceptionMessage('Header name must be an RFC 7230 compatible string');
         $r = new Request('GET', 'https://example.com/');
         $r->withHeader('', 'Bar');
     }
@@ -293,5 +293,51 @@ class RequestTest extends TestCase
         $request = new Request('GET', '/');
         $request = $request->withUri(new Uri('https://nyholm.tech:443'));
         $this->assertEquals('nyholm.tech', $request->getHeaderLine('Host'));
+    }
+
+    /**
+     * @dataProvider provideHeaderValuesContainingNotAllowedChars
+     */
+    public function testCannotHaveHeaderWithInvalidValue(string $name)
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Header name must be an RFC 7230 compatible string');
+        $r = new Request('GET', 'https://example.com/');
+        $r->withHeader($name, 'Bar');
+    }
+
+    public static function provideHeaderValuesContainingNotAllowedChars(): array
+    {
+        // Explicit tests for newlines as the most common exploit vector.
+        $tests = [
+            ["new\nline"],
+            ["new\r\nline"],
+            ["new\rline"],
+            ["new\r\n line"],
+            ["newline\n"],
+            ["\nnewline"],
+            ["newline\r\n"],
+            ["\n\rnewline"],
+        ];
+
+        for ($i = 0; $i <= 0xFF; ++$i) {
+            if ("\t" == \chr($i)) {
+                continue;
+            }
+            if (' ' == \chr($i)) {
+                continue;
+            }
+            if ($i >= 0x21 && $i <= 0x7E) {
+                continue;
+            }
+            if ($i >= 0x80) {
+                continue;
+            }
+
+            $tests[] = ['foo' . \chr($i) . 'bar'];
+            $tests[] = ['foo' . \chr($i)];
+        }
+
+        return $tests;
     }
 }

@@ -16,7 +16,6 @@ use Slim\Tests\TestCase;
 
 class ContentLengthMiddlewareTest extends TestCase
 {
-
     public function testAddsContentLength()
     {
         $request = $this->createServerRequest('/');
@@ -37,6 +36,6 @@ class ContentLengthMiddlewareTest extends TestCase
         $middlewareDispatcher->addMiddleware($mw2);
         $response = $middlewareDispatcher->handle($request);
 
-        $this->assertEquals(4, $response->getHeaderLine('Content-Length'));
+        $this->assertSame('4', $response->getHeaderLine('Content-Length'));
     }
 }

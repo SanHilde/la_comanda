@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace Tests\Nyholm\Psr7;
 
@@ -16,7 +16,7 @@ class ServerRequestTest extends TestCase
         $request1 = new ServerRequest('GET', '/');
 
         $files = [
-            'file' => new UploadedFile('test', 123, UPLOAD_ERR_OK),
+            'file' => new UploadedFile('test', 123, \UPLOAD_ERR_OK),
         ];
 
         $request2 = $request1->withUploadedFiles($files);
@@ -49,14 +49,15 @@ class ServerRequestTest extends TestCase
 
     public function testQueryParams()
     {
-        $request1 = new ServerRequest('GET', '/');
+        $request0 = new ServerRequest('GET', '/');
+        $this->assertEmpty($request0->getQueryParams());
 
+        $request1 = new ServerRequest('GET', '/?foo=bar');
         $params = ['name' => 'value'];
-
         $request2 = $request1->withQueryParams($params);
 
         $this->assertNotSame($request2, $request1);
-        $this->assertEmpty($request1->getQueryParams());
+        $this->assertSame(['foo' => 'bar'], $request1->getQueryParams());
         $this->assertSame($params, $request2->getQueryParams());
     }
 

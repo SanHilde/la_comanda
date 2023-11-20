@@ -7,15 +7,24 @@ class MesaController extends Mesa implements IApiUsable
     public function CargarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
-        
-        $mesa = new Mesa();
-        $mesa->estado = $parametros['estado'];
-        $mesa->mozo = $parametros['mozo'];
-    
-        $mesa->crearMesa();
-    
-        $payload = json_encode(array("mensaje" => "Mesa creada con éxito"));
-    
+        if(isset($parametros['mozo']))
+        {
+            $mesa = new Mesa();
+            $mesa->estado = "cerrada";
+            $usuario = Usuario::obtenerUsuario($parametros['mozo']);
+            if ($usuario != null && $usuario->sector == "mozo")
+            {
+                $mesa->mozo = $usuario->id;
+                $mesa->crearUno();
+                $payload = json_encode(array("mensaje" => "Mesa creada con éxito"));
+            } else
+            {
+                $payload = json_encode(array("mensaje" => "El usuario ingresado no pertenece a un mozo"));
+            }     
+        } else{
+            $payload = json_encode(array("mensaje" => "Falta ingresar parametros"));
+        }
+
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -23,11 +32,10 @@ class MesaController extends Mesa implements IApiUsable
     public function TraerUno($request, $response, $args)
     {
         // Buscamos Mesa por ID
-        // $id = $args['id']; // Suponiendo que el ID del Mesa se obtiene de los parámetros de la ruta
-        $parametros = $request->getParsedBody();
-        $id = $parametros['mesa'];
+        $id = $args['id']; // Suponiendo que el ID del Mesa se obtiene de los parámetros de la ruta
+        // $parametros = $request->getParsedBody();
+        // $id = $parametros['mesa'];
         $mesa = Mesa::obtenerMesa($id);
-        // $playload=null;
         if ($mesa) {
             $payload = json_encode($mesa);
            
@@ -60,32 +68,53 @@ class MesaController extends Mesa implements IApiUsable
         return $response->withHeader('Content-Type', 'application/json');
     }
     
-  
     
     public function ModificarUno($request, $response, $args)
     {
         $parametros = $request->getParsedBody();
-        // var_dump($parametros);
-        $id = $parametros['mesa']; // Suponiendo que el ID del Mesa se pasa en el cuerpo de la solicitud
-        $estado = $parametros['estado'];
-        $mozo = $parametros['mozo'];
-    
-        // Obtén el Mesa que deseas modificar por su ID
-        $mesa = Mesa::obtenerMesa($id);
-    
-        if ($mesa) {
-            // Actualiza los atributos del Mesa con los nuevos valores
-            $mesa->estado = $estado;
-            $mesa->mozo = $mozo;
-    
-            // Llama al método para modificar el Mesa en la base de datos
-            $mesa->modificarMesa();
-    
-            $payload = json_encode(array("mensaje" => "Mesa $id modificada con éxito, ahora en estado $estado con el mozo $mozo"));
+        $data=LogInController::ObtenerData($request);
+        // $usuarioIngresado = $request->getAttribute('usuario');
+        if(isset($parametros['estado']) || isset($parametros['mozo']) || isset($parametros['mesa']))
+        {
+            $id = $parametros['mesa']; // Suponiendo que el ID del Mesa se pasa en el cuerpo de la solicitud
+            $estado = $parametros['estado'];
+            $mozo = $parametros['mozo'];
+            $usuario = Usuario::obtenerUsuario($mozo);
+            $mesa = Mesa::obtenerMesa($id);
+            if ($mesa) {
+                if($estado=="con cliente esperando pedido" || $estado=="con cliente comiendo" || $estado=="con cliente pagando" || ($estado=="cerrada" && $data->sector=="socio"))
+                {
+                    if($usuario != false)
+                    {
+                        if($usuario->sector=="mozo")
+                        {
+                            $mesa->estado = $estado;
+                            $mesa->mozo = $usuario->id;
+                            if($mesa->modificarMesa())
+                            {
+                                $payload = json_encode(array("mensaje" => "Mesa $id modificada con éxito, ahora en estado: '$estado' con el mozo: '$mozo'"));
+                            } else
+                            {
+                                $payload = json_encode(array("mensaje" => "Error al modificar la mesa en la base de datos"));
+                            }             
+                        } else
+                        {
+                            $payload = json_encode(array("mensaje" => "El usuario ingresado no es mozo"));
+                        }
+                    } else
+                    {
+                        $payload = json_encode(array("mensaje" => "El mozo ingresado no existe"));
+                    }  
+                } else
+                {
+                    $payload = json_encode(array("mensaje" => "Estado de mesa no valido, solo puede ser: “con cliente esperando pedido”, ”con cliente comiendo”, “con cliente pagando”. Solo los socios pueden ingresar: “cerrada”."));
+                }          
+            } else {
+                $payload = json_encode(array("mensaje" => "Mesa no encontrada"));
+            }
         } else {
-            $payload = json_encode(array("mensaje" => "Mesa no encontrada"));
-        }
-    
+            $payload = json_encode(array("mensaje" => "Falta ingresar parametros"));
+        } 
         $response->getBody()->write($payload);
         return $response->withHeader('Content-Type', 'application/json');
     }
@@ -95,13 +124,22 @@ class MesaController extends Mesa implements IApiUsable
   public function BorrarUno($request, $response, $args)
   {
       $parametros = $request->getParsedBody();
-  
-      $mesaId = $parametros['id']; // Suponiendo que el ID de la mesa se pasa en el cuerpo de la solicitud
-  
-      // Llama al método para borrar la mesa por su ID
-      Mesa::borrarMesa($mesaId);
-  
-      $payload = json_encode(array("mensaje" => "Mesa borrada con éxito"));
+      if(isset($parametros['id']))
+      {
+        $mesaId = $parametros['id']; // Suponiendo que el ID de la mesa se pasa en el cuerpo de la solicitud
+        if(Mesa::borrarMesa($mesaId))
+        {
+            $payload = json_encode(array("mensaje" => "Mesa borrada con éxito"));
+        }else
+        {
+            $payload = json_encode(array("mensaje" => "Error al intentar borrar la mesa"));
+        }
+
+      } else
+      {
+        $payload = json_encode(array("mensaje" => "Falta ingresar id de mesa"));
+      }
+
   
       $response->getBody()->write($payload);
       return $response->withHeader('Content-Type', 'application/json');

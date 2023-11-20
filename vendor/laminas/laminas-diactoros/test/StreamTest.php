@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace LaminasTest\Diactoros;
 
+use CurlHandle;
+use GdImage;
 use InvalidArgumentException;
 use Laminas\Diactoros\Stream;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use RuntimeException;
+use Shmop;
 
 use function curl_init;
 use function feof;
@@ -32,82 +35,82 @@ use function unlink;
 
 use const DIRECTORY_SEPARATOR;
 
-class StreamTest extends TestCase
+final class StreamTest extends TestCase
 {
-    public $tmpnam;
+    /** @var string|null|false */
+    private $tmpnam;
 
-    /**
-     * @var Stream
-     */
-    protected $stream;
+    private Stream $stream;
 
-    protected function setUp() : void
+    protected function setUp(): void
     {
         $this->tmpnam = null;
         $this->stream = new Stream('php://memory', 'wb+');
     }
 
-    protected function tearDown() : void
+    protected function tearDown(): void
     {
         if ($this->tmpnam && file_exists($this->tmpnam)) {
             unlink($this->tmpnam);
         }
     }
 
-    public function testCanInstantiateWithStreamIdentifier()
+    public function testCanInstantiateWithStreamIdentifier(): void
     {
         $this->assertInstanceOf(Stream::class, $this->stream);
     }
 
-    public function testCanInstantiteWithStreamResource()
+    public function testCanInstantiateWithStreamResource(): void
     {
         $resource = fopen('php://memory', 'wb+');
         $stream   = new Stream($resource);
         $this->assertInstanceOf(Stream::class, $stream);
     }
 
-    public function testCanInstantiateWithGDResource()
+    public function testCanInstantiateWithGDResource(): void
     {
         $resource = imagecreate(1, 1);
-        $stream   = new Stream($resource);
+        self::assertInstanceOf(GdImage::class, $resource);
+        $stream = new Stream($resource);
         $this->assertInstanceOf(Stream::class, $stream);
     }
 
-    public function testIsReadableReturnsFalseIfStreamIsNotReadable()
+    public function testIsReadableReturnsFalseIfStreamIsNotReadable(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $stream = new Stream($this->tmpnam, 'w');
+        $stream       = new Stream($this->tmpnam, 'w');
         $this->assertFalse($stream->isReadable());
     }
 
-    public function testIsWritableReturnsFalseIfStreamIsNotWritable()
+    public function testIsWritableReturnsFalseIfStreamIsNotWritable(): void
     {
         $stream = new Stream('php://memory', 'r');
         $this->assertFalse($stream->isWritable());
     }
 
-    public function testToStringRetrievesFullContentsOfStream()
+    public function testToStringRetrievesFullContentsOfStream(): void
     {
         $message = 'foo bar';
         $this->stream->write($message);
         $this->assertSame($message, (string) $this->stream);
     }
 
-    public function testDetachReturnsResource()
+    public function testDetachReturnsResource(): void
     {
         $resource = fopen('php://memory', 'wb+');
         $stream   = new Stream($resource);
         $this->assertSame($resource, $stream->detach());
     }
 
-    public function testPassingInvalidStreamResourceToConstructorRaisesException()
+    public function testPassingInvalidStreamResourceToConstructorRaisesException(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
+        /** @psalm-suppress InvalidArgument */
         new Stream(['  THIS WILL NOT WORK  ']);
     }
 
-    public function testStringSerializationReturnsEmptyStringWhenStreamIsNotReadable()
+    public function testStringSerializationReturnsEmptyStringWhenStreamIsNotReadable(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
@@ -116,31 +119,31 @@ class StreamTest extends TestCase
         $this->assertSame('', $stream->__toString());
     }
 
-    public function testCloseClosesResource()
+    public function testCloseClosesResource(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $resource     = fopen($this->tmpnam, 'wb+');
+        $stream       = new Stream($resource);
         $stream->close();
         $this->assertFalse(is_resource($resource));
     }
 
-    public function testCloseUnsetsResource()
+    public function testCloseUnsetsResource(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $resource     = fopen($this->tmpnam, 'wb+');
+        $stream       = new Stream($resource);
         $stream->close();
 
         $this->assertNull($stream->detach());
     }
 
-    public function testCloseDoesNothingAfterDetach()
+    public function testCloseDoesNothingAfterDetach(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
-        $detached = $stream->detach();
+        $resource     = fopen($this->tmpnam, 'wb+');
+        $stream       = new Stream($resource);
+        $detached     = $stream->detach();
 
         $stream->close();
         $this->assertTrue(is_resource($detached));
@@ -150,30 +153,30 @@ class StreamTest extends TestCase
     /**
      * @group 42
      */
-    public function testSizeReportsNullWhenNoResourcePresent()
+    public function testSizeReportsNullWhenNoResourcePresent(): void
     {
         $this->stream->detach();
         $this->assertNull($this->stream->getSize());
     }
 
-    public function testTellReportsCurrentPositionInResource()
+    public function testTellReportsCurrentPositionInResource(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
 
         fseek($resource, 2);
 
         $this->assertSame(2, $stream->tell());
     }
 
-    public function testTellRaisesExceptionIfResourceIsDetached()
+    public function testTellRaisesExceptionIfResourceIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
 
         fseek($resource, 2);
         $stream->detach();
@@ -184,23 +187,23 @@ class StreamTest extends TestCase
         $stream->tell();
     }
 
-    public function testEofReportsFalseWhenNotAtEndOfStream()
+    public function testEofReportsFalseWhenNotAtEndOfStream(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
 
         fseek($resource, 2);
         $this->assertFalse($stream->eof());
     }
 
-    public function testEofReportsTrueWhenAtEndOfStream()
+    public function testEofReportsTrueWhenAtEndOfStream(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
 
         while (! feof($resource)) {
             fread($resource, 4096);
@@ -208,64 +211,64 @@ class StreamTest extends TestCase
         $this->assertTrue($stream->eof());
     }
 
-    public function testEofReportsTrueWhenStreamIsDetached()
+    public function testEofReportsTrueWhenStreamIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
 
         fseek($resource, 2);
         $stream->detach();
         $this->assertTrue($stream->eof());
     }
 
-    public function testIsSeekableReturnsTrueForReadableStreams()
+    public function testIsSeekableReturnsTrueForReadableStreams(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertTrue($stream->isSeekable());
     }
 
-    public function testIsSeekableReturnsFalseForDetachedStreams()
+    public function testIsSeekableReturnsFalseForDetachedStreams(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $stream->detach();
         $this->assertFalse($stream->isSeekable());
     }
 
-    public function testSeekAdvancesToGivenOffsetOfStream()
+    public function testSeekAdvancesToGivenOffsetOfStream(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertNull($stream->seek(2));
         $this->assertSame(2, $stream->tell());
     }
 
-    public function testRewindResetsToStartOfStream()
+    public function testRewindResetsToStartOfStream(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertNull($stream->seek(2));
         $stream->rewind();
         $this->assertSame(0, $stream->tell());
     }
 
-    public function testSeekRaisesExceptionWhenStreamIsDetached()
+    public function testSeekRaisesExceptionWhenStreamIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $stream->detach();
 
         $this->expectException(RuntimeException::class);
@@ -274,23 +277,24 @@ class StreamTest extends TestCase
         $stream->seek(2);
     }
 
-    public function testIsWritableReturnsFalseWhenStreamIsDetached()
+    public function testIsWritableReturnsFalseWhenStreamIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $stream->detach();
         $this->assertFalse($stream->isWritable());
     }
 
-    public function testIsWritableReturnsTrueForWritableMemoryStream()
+    public function testIsWritableReturnsTrueForWritableMemoryStream(): void
     {
         $stream = new Stream("php://temp", "r+b");
         $this->assertTrue($stream->isWritable());
     }
 
-    public function provideDataForIsWritable()
+    /** @return non-empty-list<array{non-empty-string, bool, bool}> */
+    public function provideDataForIsWritable(): array
     {
         return [
             ['a',   true,  true],
@@ -317,21 +321,20 @@ class StreamTest extends TestCase
         ];
     }
 
-    private function findNonExistentTempName()
+    private function findNonExistentTempName(): string
     {
-        while (true) {
+        do {
             $tmpnam = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'diac' . uniqid();
-            if (! file_exists(sys_get_temp_dir() . $tmpnam)) {
-                break;
-            }
-        }
+        } while (file_exists(sys_get_temp_dir() . $tmpnam));
+
         return $tmpnam;
     }
 
     /**
      * @dataProvider provideDataForIsWritable
+     * @param non-empty-string $mode
      */
-    public function testIsWritableReturnsCorrectFlagForMode($mode, $fileShouldExist, $flag)
+    public function testIsWritableReturnsCorrectFlagForMode(string $mode, bool $fileShouldExist, bool $flag): void
     {
         if ($fileShouldExist) {
             $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
@@ -341,11 +344,12 @@ class StreamTest extends TestCase
             $this->tmpnam = $this->findNonExistentTempName();
         }
         $resource = fopen($this->tmpnam, $mode);
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertSame($flag, $stream->isWritable());
     }
 
-    public function provideDataForIsReadable()
+    /** @return non-empty-list<array{non-empty-string, bool, bool}> */
+    public function provideDataForIsReadable(): array
     {
         return [
             ['a',   true,  false],
@@ -374,8 +378,9 @@ class StreamTest extends TestCase
 
     /**
      * @dataProvider provideDataForIsReadable
+     * @param non-empty-string $mode
      */
-    public function testIsReadableReturnsCorrectFlagForMode($mode, $fileShouldExist, $flag)
+    public function testIsReadableReturnsCorrectFlagForMode(string $mode, bool $fileShouldExist, bool $flag): void
     {
         if ($fileShouldExist) {
             $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
@@ -385,16 +390,16 @@ class StreamTest extends TestCase
             $this->tmpnam = $this->findNonExistentTempName();
         }
         $resource = fopen($this->tmpnam, $mode);
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertSame($flag, $stream->isReadable());
     }
 
-    public function testWriteRaisesExceptionWhenStreamIsDetached()
+    public function testWriteRaisesExceptionWhenStreamIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $stream->detach();
 
         $this->expectException(RuntimeException::class);
@@ -403,7 +408,7 @@ class StreamTest extends TestCase
         $stream->write('bar');
     }
 
-    public function testWriteRaisesExceptionWhenStreamIsNotWritable()
+    public function testWriteRaisesExceptionWhenStreamIsNotWritable(): void
     {
         $stream = new Stream('php://memory', 'r');
 
@@ -413,23 +418,23 @@ class StreamTest extends TestCase
         $stream->write('bar');
     }
 
-    public function testIsReadableReturnsFalseWhenStreamIsDetached()
+    public function testIsReadableReturnsFalseWhenStreamIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'wb+');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $stream->detach();
 
         $this->assertFalse($stream->isReadable());
     }
 
-    public function testReadRaisesExceptionWhenStreamIsDetached()
+    public function testReadRaisesExceptionWhenStreamIsDetached(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'r');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $stream->detach();
 
         $this->expectException(RuntimeException::class);
@@ -438,67 +443,69 @@ class StreamTest extends TestCase
         $stream->read(4096);
     }
 
-    public function testReadReturnsEmptyStringWhenAtEndOfFile()
+    public function testReadReturnsEmptyStringWhenAtEndOfFile(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'r');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         while (! feof($resource)) {
             fread($resource, 4096);
         }
         $this->assertSame('', $stream->read(4096));
     }
 
-    public function testGetContentsRisesExceptionIfStreamIsNotReadable()
+    public function testGetContentsRisesExceptionIfStreamIsNotReadable(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'w');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
 
         $this->expectException(RuntimeException::class);
 
         $stream->getContents();
     }
 
-    public function invalidResources()
+    /** @return non-empty-array<non-empty-string, array{mixed}> */
+    public function invalidResources(): array
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         return [
-            'null' => [ null ],
-            'false' => [ false ],
-            'true' => [ true ],
-            'int' => [ 1 ],
-            'float' => [ 1.1 ],
-            'array' => [ [ fopen($this->tmpnam, 'r+') ] ],
-            'object' => [ (object) [ 'resource' => fopen($this->tmpnam, 'r+') ] ],
+            'null'   => [null],
+            'false'  => [false],
+            'true'   => [true],
+            'int'    => [1],
+            'float'  => [1.1],
+            'array'  => [[fopen($this->tmpnam, 'r+')]],
+            'object' => [(object) ['resource' => fopen($this->tmpnam, 'r+')]],
         ];
     }
 
     /**
      * @dataProvider invalidResources
      */
-    public function testAttachWithNonStringNonResourceRaisesException($resource)
+    public function testAttachWithNonStringNonResourceRaisesException(mixed $resource): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid stream');
 
+        /** @psalm-suppress MixedArgument */
         $this->stream->attach($resource);
     }
 
-    public function testAttachWithInvalidStringResourceRaisesException()
+    public function testAttachWithInvalidStringResourceRaisesException(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid stream');
 
         $this->stream->attach('foo-bar-baz');
     }
 
-    public function testAttachWithResourceAttachesResource()
+    public function testAttachWithResourceAttachesResource(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'r+');
+        $resource     = fopen($this->tmpnam, 'r+');
         $this->stream->attach($resource);
 
         $r = new ReflectionProperty($this->stream, 'resource');
@@ -507,7 +514,7 @@ class StreamTest extends TestCase
         $this->assertSame($resource, $test);
     }
 
-    public function testAttachWithStringRepresentingResourceCreatesAndAttachesResource()
+    public function testAttachWithStringRepresentingResourceCreatesAndAttachesResource(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         $this->stream->attach($this->tmpnam);
@@ -520,10 +527,10 @@ class StreamTest extends TestCase
         $this->assertSame('FooBar', $test);
     }
 
-    public function testGetContentsShouldGetFullStreamContents()
+    public function testGetContentsShouldGetFullStreamContents(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'r+');
+        $resource     = fopen($this->tmpnam, 'r+');
         $this->stream->attach($resource);
 
         fwrite($resource, 'FooBar');
@@ -534,10 +541,10 @@ class StreamTest extends TestCase
         $this->assertSame('FooBar', $test);
     }
 
-    public function testGetContentsShouldReturnStreamContentsFromCurrentPointer()
+    public function testGetContentsShouldReturnStreamContentsFromCurrentPointer(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'r+');
+        $resource     = fopen($this->tmpnam, 'r+');
         $this->stream->attach($resource);
 
         fwrite($resource, 'FooBar');
@@ -548,10 +555,10 @@ class StreamTest extends TestCase
         $this->assertSame('Bar', $test);
     }
 
-    public function testGetMetadataReturnsAllMetadataWhenNoKeyPresent()
+    public function testGetMetadataReturnsAllMetadataWhenNoKeyPresent(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'r+');
+        $resource     = fopen($this->tmpnam, 'r+');
         $this->stream->attach($resource);
 
         $expected = stream_get_meta_data($resource);
@@ -560,24 +567,24 @@ class StreamTest extends TestCase
         $this->assertSame($expected, $test);
     }
 
-    public function testGetMetadataReturnsDataForSpecifiedKey()
+    public function testGetMetadataReturnsDataForSpecifiedKey(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'r+');
+        $resource     = fopen($this->tmpnam, 'r+');
         $this->stream->attach($resource);
 
         $metadata = stream_get_meta_data($resource);
         $expected = $metadata['uri'];
 
-        $test     = $this->stream->getMetadata('uri');
+        $test = $this->stream->getMetadata('uri');
 
         $this->assertSame($expected, $test);
     }
 
-    public function testGetMetadataReturnsNullIfNoDataExistsForKey()
+    public function testGetMetadataReturnsNullIfNoDataExistsForKey(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
-        $resource = fopen($this->tmpnam, 'r+');
+        $resource     = fopen($this->tmpnam, 'r+');
         $this->stream->attach($resource);
 
         $this->assertNull($this->stream->getMetadata('TOTALLY_MADE_UP'));
@@ -586,18 +593,18 @@ class StreamTest extends TestCase
     /**
      * @group 42
      */
-    public function testGetSizeReturnsStreamSize()
+    public function testGetSizeReturnsStreamSize(): void
     {
         $resource = fopen(__FILE__, 'r');
         $expected = fstat($resource);
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertSame($expected['size'], $stream->getSize());
     }
 
     /**
      * @group 67
      */
-    public function testRaisesExceptionOnConstructionForNonStreamResources()
+    public function testRaisesExceptionOnConstructionForNonStreamResources(): void
     {
         $resource = $this->getResourceFor67();
         if (false === $resource) {
@@ -613,7 +620,7 @@ class StreamTest extends TestCase
     /**
      * @group 67
      */
-    public function testRaisesExceptionOnAttachForNonStreamResources()
+    public function testRaisesExceptionOnAttachForNonStreamResources(): void
     {
         $resource = $this->getResourceFor67();
         if (false === $resource) {
@@ -628,6 +635,7 @@ class StreamTest extends TestCase
         $stream->attach($resource);
     }
 
+    /** @return CurlHandle|GdImage|Shmop|false|resource */
     public function getResourceFor67()
     {
         if (function_exists('curl_init')) {
@@ -638,10 +646,6 @@ class StreamTest extends TestCase
             return shmop_open(ftok(__FILE__, 't'), 'c', 0644, 100);
         }
 
-        if (function_exists('gmp_init')) {
-            return gmp_init(1);
-        }
-
         if (function_exists('imagecreate')) {
             return imagecreate(200, 200);
         }
@@ -649,12 +653,12 @@ class StreamTest extends TestCase
         return false;
     }
 
-    public function testCanReadContentFromNotSeekableResource()
+    public function testCanReadContentFromNotSeekableResource(): void
     {
         $this->tmpnam = tempnam(sys_get_temp_dir(), 'diac');
         file_put_contents($this->tmpnam, 'FOO BAR');
         $resource = fopen($this->tmpnam, 'r');
-        $stream = $this
+        $stream   = $this
             ->getMockBuilder(Stream::class)
             ->setConstructorArgs([$resource])
             ->setMethods(['isSeekable'])
@@ -669,10 +673,10 @@ class StreamTest extends TestCase
     /**
      * @group 42
      */
-    public function testSizeReportsNullForPhpInputStreams()
+    public function testSizeReportsNullForPhpInputStreams(): void
     {
         $resource = fopen('php://input', 'r');
-        $stream = new Stream($resource);
+        $stream   = new Stream($resource);
         $this->assertNull($stream->getSize());
     }
 }

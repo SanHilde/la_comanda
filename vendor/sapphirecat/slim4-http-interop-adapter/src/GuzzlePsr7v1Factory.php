@@ -13,12 +13,8 @@ use Slim\Factory\Psr17\Psr17Factory;
  */
 class GuzzlePsr7v1Factory extends Psr17Factory
 {
-    /** @var string */
-    protected static $responseFactoryClass = 'Http\Factory\Guzzle\ResponseFactory';
-    /** @var string */
-    protected static $streamFactoryClass = 'Http\Factory\Guzzle\StreamFactory';
-    /** @var string */
-    protected static $serverRequestCreatorClass = 'GuzzleHttp\Psr7\ServerRequest';
-    /** @var string */
-    protected static $serverRequestCreatorMethod = 'fromGlobals';
+    protected static string $responseFactoryClass = 'Http\Factory\Guzzle\ResponseFactory';
+    protected static string $streamFactoryClass = 'Http\Factory\Guzzle\StreamFactory';
+    protected static string $serverRequestCreatorClass = 'GuzzleHttp\Psr7\ServerRequest';
+    protected static string $serverRequestCreatorMethod = 'fromGlobals';
 }

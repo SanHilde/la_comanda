@@ -8,7 +8,7 @@ class Producto
     public $sector;
 
 
-    public function crearProducto()
+    public function crearUno()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
         $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO productos (descripcion, precio, sector) VALUES (:descripcion, :precio, :sector)");
@@ -54,12 +54,12 @@ class Producto
     }
     
 
-    public function borrarProducto()
+    public static function borrarProducto($id)
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("DELETE FROM productos WHERE id = :id");
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
-        $consulta->execute();
+        $consulta = $objAccesoDatos->prepararConsulta("UPDATE productos SET sector = 'dado de baja' WHERE id = :id");
+        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
+        return $consulta->execute();
     }
     
 }

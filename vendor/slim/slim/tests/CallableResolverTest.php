@@ -23,10 +23,7 @@ use Slim\Tests\Mocks\RequestHandlerTest;
 
 class CallableResolverTest extends TestCase
 {
-    /**
-     * @var ObjectProphecy
-     */
-    private $containerProphecy;
+    private ObjectProphecy $containerProphecy;
 
     public static function setUpBeforeClass(): void
     {
@@ -46,7 +43,7 @@ class CallableResolverTest extends TestCase
         $this->containerProphecy->has(Argument::type('string'))->willReturn(false);
     }
 
-    public function testClosure()
+    public function testClosure(): void
     {
         $test = function () {
             return true;
@@ -56,12 +53,12 @@ class CallableResolverTest extends TestCase
         $callableRoute = $resolver->resolveRoute($test);
         $callableMiddleware = $resolver->resolveMiddleware($test);
 
-        $this->assertEquals(true, $callable());
-        $this->assertEquals(true, $callableRoute());
-        $this->assertEquals(true, $callableMiddleware());
+        $this->assertTrue($callable());
+        $this->assertTrue($callableRoute());
+        $this->assertTrue($callableMiddleware());
     }
 
-    public function testClosureContainer()
+    public function testClosureContainer(): void
     {
         $this->containerProphecy->has('ultimateAnswer')->willReturn(true);
         $this->containerProphecy->get('ultimateAnswer')->willReturn(42);
@@ -81,24 +78,24 @@ class CallableResolverTest extends TestCase
         $callableRoute = $resolver->resolveRoute($test);
         $callableMiddleware = $resolver->resolveMiddleware($test);
 
-        $this->assertEquals(42, $callable());
-        $this->assertEquals(42, $callableRoute());
-        $this->assertEquals(42, $callableMiddleware());
+        $this->assertSame(42, $callable());
+        $this->assertSame(42, $callableRoute());
+        $this->assertSame(42, $callableMiddleware());
     }
 
-    public function testFunctionName()
+    public function testFunctionName(): void
     {
         $resolver = new CallableResolver(); // No container injected
         $callable = $resolver->resolve(__NAMESPACE__ . '\testAdvancedCallable');
         $callableRoute = $resolver->resolveRoute(__NAMESPACE__ . '\testAdvancedCallable');
         $callableMiddleware = $resolver->resolveMiddleware(__NAMESPACE__ . '\testAdvancedCallable');
 
-        $this->assertEquals(true, $callable());
-        $this->assertEquals(true, $callableRoute());
-        $this->assertEquals(true, $callableMiddleware());
+        $this->assertTrue($callable());
+        $this->assertTrue($callableRoute());
+        $this->assertTrue($callableMiddleware());
     }
 
-    public function testObjMethodArray()
+    public function testObjMethodArray(): void
     {
         $obj = new CallableTest();
         $resolver = new CallableResolver(); // No container injected
@@ -107,16 +104,16 @@ class CallableResolverTest extends TestCase
         $callableMiddleware = $resolver->resolveMiddleware([$obj, 'toCall']);
 
         $callable();
-        $this->assertEquals(1, CallableTest::$CalledCount);
+        $this->assertSame(1, CallableTest::$CalledCount);
 
         $callableRoute();
-        $this->assertEquals(2, CallableTest::$CalledCount);
+        $this->assertSame(2, CallableTest::$CalledCount);
 
         $callableMiddleware();
-        $this->assertEquals(3, CallableTest::$CalledCount);
+        $this->assertSame(3, CallableTest::$CalledCount);
     }
 
-    public function testSlimCallable()
+    public function testSlimCallable(): void
     {
         $resolver = new CallableResolver(); // No container injected
         $callable = $resolver->resolve('Slim\Tests\Mocks\CallableTest:toCall');
@@ -124,16 +121,16 @@ class CallableResolverTest extends TestCase
         $callableMiddleware = $resolver->resolveMiddleware('Slim\Tests\Mocks\CallableTest:toCall');
 
         $callable();
-        $this->assertEquals(1, CallableTest::$CalledCount);
+        $this->assertSame(1, CallableTest::$CalledCount);
 
         $callableRoute();
-        $this->assertEquals(2, CallableTest::$CalledCount);
+        $this->assertSame(2, CallableTest::$CalledCount);
 
         $callableMiddleware();
-        $this->assertEquals(3, CallableTest::$CalledCount);
+        $this->assertSame(3, CallableTest::$CalledCount);
     }
 
-    public function testSlimCallableAsArray()
+    public function testSlimCallableAsArray(): void
     {
         $resolver = new CallableResolver(); // No container injected
         $callable = $resolver->resolve([CallableTest::class, 'toCall']);
@@ -141,50 +138,50 @@ class CallableResolverTest extends TestCase
         $callableMiddleware = $resolver->resolveMiddleware([CallableTest::class, 'toCall']);
 
         $callable();
-        $this->assertEquals(1, CallableTest::$CalledCount);
+        $this->assertSame(1, CallableTest::$CalledCount);
 
         $callableRoute();
-        $this->assertEquals(2, CallableTest::$CalledCount);
+        $this->assertSame(2, CallableTest::$CalledCount);
 
         $callableMiddleware();
-        $this->assertEquals(3, CallableTest::$CalledCount);
+        $this->assertSame(3, CallableTest::$CalledCount);
     }
 
-    public function testSlimCallableContainer()
+    public function testSlimCallableContainer(): void
     {
         /** @var ContainerInterface $container */
         $container = $this->containerProphecy->reveal();
         $resolver = new CallableResolver($container);
         $resolver->resolve('Slim\Tests\Mocks\CallableTest:toCall');
-        $this->assertEquals($container, CallableTest::$CalledContainer);
+        $this->assertSame($container, CallableTest::$CalledContainer);
 
         CallableTest::$CalledContainer = null;
         $resolver->resolveRoute('Slim\Tests\Mocks\CallableTest:toCall');
-        $this->assertEquals($container, CallableTest::$CalledContainer);
+        $this->assertSame($container, CallableTest::$CalledContainer);
 
         CallableTest::$CalledContainer = null;
         $resolver->resolveMiddleware('Slim\Tests\Mocks\CallableTest:toCall');
-        $this->assertEquals($container, CallableTest::$CalledContainer);
+        $this->assertSame($container, CallableTest::$CalledContainer);
     }
 
-    public function testSlimCallableAsArrayContainer()
+    public function testSlimCallableAsArrayContainer(): void
     {
         /** @var ContainerInterface $container */
         $container = $this->containerProphecy->reveal();
         $resolver = new CallableResolver($container);
         $resolver->resolve([CallableTest::class, 'toCall']);
-        $this->assertEquals($container, CallableTest::$CalledContainer);
+        $this->assertSame($container, CallableTest::$CalledContainer);
 
         CallableTest::$CalledContainer = null;
         $resolver->resolveRoute([CallableTest::class, 'toCall']);
-        $this->assertEquals($container, CallableTest::$CalledContainer);
+        $this->assertSame($container, CallableTest::$CalledContainer);
 
         CallableTest::$CalledContainer = null;
         $resolver->resolveMiddleware([CallableTest::class ,'toCall']);
-        $this->assertEquals($container, CallableTest::$CalledContainer);
+        $this->assertSame($container, CallableTest::$CalledContainer);
     }
 
-    public function testContainer()
+    public function testContainer(): void
     {
         $this->containerProphecy->has('callable_service')->willReturn(true);
         $this->containerProphecy->get('callable_service')->willReturn(new CallableTest());
@@ -198,16 +195,16 @@ class CallableResolverTest extends TestCase
         $callableMiddleware = $resolver->resolveMiddleware('callable_service:toCall');
 
         $callable();
-        $this->assertEquals(1, CallableTest::$CalledCount);
+        $this->assertSame(1, CallableTest::$CalledCount);
 
         $callableRoute();
-        $this->assertEquals(2, CallableTest::$CalledCount);
+        $this->assertSame(2, CallableTest::$CalledCount);
 
         $callableMiddleware();
-        $this->assertEquals(3, CallableTest::$CalledCount);
+        $this->assertSame(3, CallableTest::$CalledCount);
     }
 
-    public function testResolutionToAnInvokableClassInContainer()
+    public function testResolutionToAnInvokableClassInContainer(): void
     {
         $this->containerProphecy->has('an_invokable')->willReturn(true);
         $this->containerProphecy->get('an_invokable')->willReturn(new InvokableTest());
@@ -221,16 +218,16 @@ class CallableResolverTest extends TestCase
         $callableMiddleware = $resolver->resolveMiddleware('an_invokable');
 
         $callable();
-        $this->assertEquals(1, InvokableTest::$CalledCount);
+        $this->assertSame(1, InvokableTest::$CalledCount);
 
         $callableRoute();
-        $this->assertEquals(2, InvokableTest::$CalledCount);
+        $this->assertSame(2, InvokableTest::$CalledCount);
 
         $callableMiddleware();
-        $this->assertEquals(3, InvokableTest::$CalledCount);
+        $this->assertSame(3, InvokableTest::$CalledCount);
     }
 
-    public function testResolutionToAnInvokableClass()
+    public function testResolutionToAnInvokableClass(): void
     {
         $resolver = new CallableResolver(); // No container injected
         $callable = $resolver->resolve('Slim\Tests\Mocks\InvokableTest');
@@ -238,16 +235,16 @@ class CallableResolverTest extends TestCase
         $callableMiddleware = $resolver->resolveMiddleware('Slim\Tests\Mocks\InvokableTest');
 
         $callable();
-        $this->assertEquals(1, InvokableTest::$CalledCount);
+        $this->assertSame(1, InvokableTest::$CalledCount);
 
         $callableRoute();
-        $this->assertEquals(2, InvokableTest::$CalledCount);
+        $this->assertSame(2, InvokableTest::$CalledCount);
 
         $callableMiddleware();
-        $this->assertEquals(3, InvokableTest::$CalledCount);
+        $this->assertSame(3, InvokableTest::$CalledCount);
     }
 
-    public function testResolutionToAPsrRequestHandlerClass()
+    public function testResolutionToAPsrRequestHandlerClass(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Slim\\Tests\\Mocks\\RequestHandlerTest is not resolvable');
@@ -256,16 +253,16 @@ class CallableResolverTest extends TestCase
         $resolver->resolve(RequestHandlerTest::class);
     }
 
-    public function testRouteResolutionToAPsrRequestHandlerClass()
+    public function testRouteResolutionToAPsrRequestHandlerClass(): void
     {
         $request = $this->createServerRequest('/', 'GET');
         $resolver = new CallableResolver(); // No container injected
         $callableRoute = $resolver->resolveRoute(RequestHandlerTest::class);
         $callableRoute($request);
-        $this->assertEquals('1', RequestHandlerTest::$CalledCount);
+        $this->assertSame(1, RequestHandlerTest::$CalledCount);
     }
 
-    public function testMiddlewareResolutionToAPsrRequestHandlerClass()
+    public function testMiddlewareResolutionToAPsrRequestHandlerClass(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Slim\\Tests\\Mocks\\RequestHandlerTest is not resolvable');
@@ -274,7 +271,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveMiddleware(RequestHandlerTest::class);
     }
 
-    public function testObjPsrRequestHandlerClass()
+    public function testObjPsrRequestHandlerClass(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('{} is not resolvable');
@@ -284,17 +281,17 @@ class CallableResolverTest extends TestCase
         $resolver->resolve($obj);
     }
 
-    public function testRouteObjPsrRequestHandlerClass()
+    public function testRouteObjPsrRequestHandlerClass(): void
     {
         $obj = new RequestHandlerTest();
         $request = $this->createServerRequest('/', 'GET');
         $resolver = new CallableResolver(); // No container injected
         $callableRoute = $resolver->resolveRoute($obj);
         $callableRoute($request);
-        $this->assertEquals('1', RequestHandlerTest::$CalledCount);
+        $this->assertSame(1, RequestHandlerTest::$CalledCount);
     }
 
-    public function testMiddlewareObjPsrRequestHandlerClass()
+    public function testMiddlewareObjPsrRequestHandlerClass(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('{} is not resolvable');
@@ -304,7 +301,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveMiddleware($obj);
     }
 
-    public function testObjPsrRequestHandlerClassInContainer()
+    public function testObjPsrRequestHandlerClassInContainer(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('a_requesthandler is not resolvable');
@@ -318,7 +315,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolve('a_requesthandler');
     }
 
-    public function testRouteObjPsrRequestHandlerClassInContainer()
+    public function testRouteObjPsrRequestHandlerClassInContainer(): void
     {
         $this->containerProphecy->has('a_requesthandler')->willReturn(true);
         $this->containerProphecy->get('a_requesthandler')->willReturn(new RequestHandlerTest());
@@ -330,10 +327,10 @@ class CallableResolverTest extends TestCase
         $callable = $resolver->resolveRoute('a_requesthandler');
         $callable($request);
 
-        $this->assertEquals('1', RequestHandlerTest::$CalledCount);
+        $this->assertSame(1, RequestHandlerTest::$CalledCount);
     }
 
-    public function testMiddlewareObjPsrRequestHandlerClassInContainer()
+    public function testMiddlewareObjPsrRequestHandlerClassInContainer(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('a_requesthandler is not resolvable');
@@ -347,7 +344,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveMiddleware('a_requesthandler');
     }
 
-    public function testResolutionToAPsrRequestHandlerClassWithCustomMethod()
+    public function testResolutionToAPsrRequestHandlerClassWithCustomMethod(): void
     {
         $resolver = new CallableResolver(); // No container injected
         $callable = $resolver->resolve(RequestHandlerTest::class . ':custom');
@@ -356,18 +353,18 @@ class CallableResolverTest extends TestCase
 
         $this->assertIsArray($callable);
         $this->assertInstanceOf(RequestHandlerTest::class, $callable[0]);
-        $this->assertEquals('custom', $callable[1]);
+        $this->assertSame('custom', $callable[1]);
 
         $this->assertIsArray($callableRoute);
         $this->assertInstanceOf(RequestHandlerTest::class, $callableRoute[0]);
-        $this->assertEquals('custom', $callableRoute[1]);
+        $this->assertSame('custom', $callableRoute[1]);
 
         $this->assertIsArray($callableMiddleware);
         $this->assertInstanceOf(RequestHandlerTest::class, $callableMiddleware[0]);
-        $this->assertEquals('custom', $callableMiddleware[1]);
+        $this->assertSame('custom', $callableMiddleware[1]);
     }
 
-    public function testObjMiddlewareClass()
+    public function testObjMiddlewareClass(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('{} is not resolvable');
@@ -377,7 +374,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolve($obj);
     }
 
-    public function testRouteObjMiddlewareClass()
+    public function testRouteObjMiddlewareClass(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('{} is not resolvable');
@@ -387,17 +384,31 @@ class CallableResolverTest extends TestCase
         $resolver->resolveRoute($obj);
     }
 
-    public function testMiddlewareObjMiddlewareClass()
+    public function testMiddlewareObjMiddlewareClass(): void
     {
         $obj = new MiddlewareTest();
         $request = $this->createServerRequest('/', 'GET');
         $resolver = new CallableResolver(); // No container injected
         $callableRouteMiddleware = $resolver->resolveMiddleware($obj);
         $callableRouteMiddleware($request, $this->createMock(RequestHandlerInterface::class));
-        $this->assertEquals('1', MiddlewareTest::$CalledCount);
+        $this->assertSame(1, MiddlewareTest::$CalledCount);
     }
 
-    public function testMethodNotFoundThrowException()
+    public function testNotObjectInContainerThrowException(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('callable_service container entry is not an object');
+
+        $this->containerProphecy->has('callable_service')->willReturn(true);
+        $this->containerProphecy->get('callable_service')->willReturn('NOT AN OBJECT');
+
+        /** @var ContainerInterface $container */
+        $container = $this->containerProphecy->reveal();
+        $resolver = new CallableResolver($container);
+        $resolver->resolve('callable_service');
+    }
+
+    public function testMethodNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('callable_service:notFound is not resolvable');
@@ -411,7 +422,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolve('callable_service:notFound');
     }
 
-    public function testRouteMethodNotFoundThrowException()
+    public function testRouteMethodNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('callable_service:notFound is not resolvable');
@@ -425,7 +436,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveRoute('callable_service:notFound');
     }
 
-    public function testMiddlewareMethodNotFoundThrowException()
+    public function testMiddlewareMethodNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('callable_service:notFound is not resolvable');
@@ -439,7 +450,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveMiddleware('callable_service:notFound');
     }
 
-    public function testFunctionNotFoundThrowException()
+    public function testFunctionNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable notFound does not exist');
@@ -450,7 +461,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolve('notFound');
     }
 
-    public function testRouteFunctionNotFoundThrowException()
+    public function testRouteFunctionNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable notFound does not exist');
@@ -461,7 +472,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveRoute('notFound');
     }
 
-    public function testMiddlewareFunctionNotFoundThrowException()
+    public function testMiddlewareFunctionNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable notFound does not exist');
@@ -472,7 +483,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveMiddleware('notFound');
     }
 
-    public function testClassNotFoundThrowException()
+    public function testClassNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable Unknown::notFound() does not exist');
@@ -483,7 +494,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolve('Unknown:notFound');
     }
 
-    public function testRouteClassNotFoundThrowException()
+    public function testRouteClassNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable Unknown::notFound() does not exist');
@@ -494,7 +505,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveRoute('Unknown:notFound');
     }
 
-    public function testMiddlewareClassNotFoundThrowException()
+    public function testMiddlewareClassNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable Unknown::notFound() does not exist');
@@ -505,7 +516,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveMiddleware('Unknown:notFound');
     }
 
-    public function testCallableClassNotFoundThrowException()
+    public function testCallableClassNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable Unknown::notFound() does not exist');
@@ -516,7 +527,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolve(['Unknown', 'notFound']);
     }
 
-    public function testRouteCallableClassNotFoundThrowException()
+    public function testRouteCallableClassNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable Unknown::notFound() does not exist');
@@ -527,7 +538,7 @@ class CallableResolverTest extends TestCase
         $resolver->resolveRoute(['Unknown', 'notFound']);
     }
 
-    public function testMiddlewareCallableClassNotFoundThrowException()
+    public function testMiddlewareCallableClassNotFoundThrowException(): void
     {
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Callable Unknown::notFound() does not exist');

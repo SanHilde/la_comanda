@@ -17,19 +17,17 @@ class Usuario
     //     $this->sector = $sector;
     // }
 
-    public function crearUsuario($id)
+    public function crearUno()
     {
         $objAccesoDatos = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO usuarios (id, nombre, clave, sector) VALUES (:id, :nombre, :clave, :sector)");
-        $claveHash = password_hash($this->clave, PASSWORD_DEFAULT);
-        $consulta->bindValue(':id', $id, PDO::PARAM_INT); // id como ID
+        $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO usuarios (nombre, clave, sector) VALUES (:nombre, :clave, :sector)");
+        // $claveHash = password_hash($this->clave, PASSWORD_DEFAULT);
+        // $consulta->bindValue(':id', $id, PDO::PARAM_INT); // id como ID
         $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);
-        $consulta->bindValue(':clave', $claveHash, PDO::PARAM_STR);
+        $consulta->bindValue(':clave', $this->clave, PDO::PARAM_STR);
         // $consulta->bindValue(':tipo', $this->tipo, PDO::PARAM_STR);
         $consulta->bindValue(':sector', $this->sector, PDO::PARAM_STR);
-        $consulta->execute();
-    
-        return $id; 
+        return $consulta->execute();
     }
     
     
@@ -69,12 +67,13 @@ class Usuario
     }
     
 
-    public function borrarUsuario()
+    public static function borrarUsuario($id)
     {
         $objAccesoDato = AccesoDatos::obtenerInstancia();
-        $consulta = $objAccesoDato->prepararConsulta("DELETE FROM usuarios WHERE id = :id");
-        $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
-        $consulta->execute();
-    }
+        $consulta = $objAccesoDato->prepararConsulta("UPDATE usuarios SET sector = 'dado de baja' WHERE id = :id");
+        $consulta->bindValue(':id', $id, PDO::PARAM_INT);
+
+        return ($consulta->execute());
+    }   
     
 }
