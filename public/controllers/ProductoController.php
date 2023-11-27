@@ -8,7 +8,7 @@ class ProductoController extends Producto implements IApiUsable
   {
       $parametros = $request->getParsedBody();
       
-      if(isset($parametros['descripcion']) || isset($parametros['precio']) || isset($parametros['sector']) )
+      if(isset($parametros['descripcion']) && isset($parametros['precio']) && isset($parametros['sector']) )
       {
         if($parametros['sector'] == "cocina" || $parametros['sector'] == "candybar" || $parametros['sector'] == "bartender" || $parametros['sector'] == "cervecero")
         {

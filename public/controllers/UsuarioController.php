@@ -63,7 +63,7 @@ class UsuarioController extends Usuario implements IApiUsable
     {
         $parametros = $request->getParsedBody();
         
-        if(isset($parametros['usuarioNuevo']) || isset($parametros['clave']) || isset($parametros['sector']) || isset($parametros['usuario']) )
+        if(isset($parametros['usuarioNuevo']) && isset($parametros['clave']) && isset($parametros['sector']) && isset($parametros['usuario']) )
         {
           $nombre = $parametros['usuarioNuevo'];
           $clave = $parametros['clave'];

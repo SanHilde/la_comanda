@@ -45,6 +45,13 @@ $app->group('/clientes', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerPorCodigo');
 });
 
+$app->group('/socio', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \PedidoController::class . ':TraerPorCodigo')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+});
+$app->group('/mozo', function (RouteCollectorProxy $group) {
+  $group->post('[/]', \PedidoController::class . ':CalcularCuenta')->add(SectorMiddleware::class .":authMozo")->add(new AuthMiddleware());
+});
+
 $app->group('/exportar', function (RouteCollectorProxy $group) {
   $group->post('[/]', \ArchivoController::class . ':ExportarArchivo')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
 });
@@ -78,7 +85,7 @@ $app->group('/mesas', function (RouteCollectorProxy $group) {
 
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerTodos')->add(new AuthMiddleware());
-  $group->get('/{id}', \PedidoController::class . ':TraerUno');  // Ruta para obtener un pedido por su ID
+  $group->get('/{id}', \PedidoController::class . ':TraerUno')->add(new AuthMiddleware());;  // Ruta para obtener un pedido por su ID
   $group->post('[/]', \PedidoController::class . ':CargarUno')->add(SectorMiddleware::class .":authMozo")->add(new AuthMiddleware());
   $group->put('[/]', \PedidoController::class . ':ModificarUno')->add(new AuthMiddleware());
   $group->delete('[/]', \PedidoController::class . ':BorrarUno')->add(SectorMiddleware::class .":authMozo")->add(new AuthMiddleware());

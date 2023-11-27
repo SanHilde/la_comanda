@@ -15,6 +15,7 @@ class MesaController extends Mesa implements IApiUsable
             if ($usuario != null && $usuario->sector == "mozo")
             {
                 $mesa->mozo = $usuario->id;
+                $mesa->pedido = "-";
                 $mesa->crearUno();
                 $payload = json_encode(array("mensaje" => "Mesa creada con éxito"));
             } else
@@ -74,25 +75,27 @@ class MesaController extends Mesa implements IApiUsable
         $parametros = $request->getParsedBody();
         $data=LogInController::ObtenerData($request);
         // $usuarioIngresado = $request->getAttribute('usuario');
-        if(isset($parametros['estado']) || isset($parametros['mozo']) || isset($parametros['mesa']))
+        if(isset($parametros['estado']) && isset($parametros['mozo']) && isset($parametros['mesa']) && isset($parametros['pedido']))
         {
             $id = $parametros['mesa']; // Suponiendo que el ID del Mesa se pasa en el cuerpo de la solicitud
             $estado = $parametros['estado'];
             $mozo = $parametros['mozo'];
+            $pedido = $parametros['pedido'];
             $usuario = Usuario::obtenerUsuario($mozo);
             $mesa = Mesa::obtenerMesa($id);
             if ($mesa) {
                 if($estado=="con cliente esperando pedido" || $estado=="con cliente comiendo" || $estado=="con cliente pagando" || ($estado=="cerrada" && $data->sector=="socio"))
                 {
-                    if($usuario != false)
+                    if($usuario != false || $data->sector=="socio")
                     {
-                        if($usuario->sector=="mozo")
+                        if( $data->sector=="socio"  || $usuario->sector=="mozo")
                         {
                             $mesa->estado = $estado;
-                            $mesa->mozo = $usuario->id;
+                            $mesa->pedido = $pedido;
+                            $mesa->mozo = $usuario->id ?? "-";
                             if($mesa->modificarMesa())
                             {
-                                $payload = json_encode(array("mensaje" => "Mesa $id modificada con éxito, ahora en estado: '$estado' con el mozo: '$mozo'"));
+                                $payload = json_encode(array("mensaje" => "Mesa $id modificada con éxito, ahora en estado: '$estado' con el mozo: '$mozo' y el pedido: '$pedido'"));
                             } else
                             {
                                 $payload = json_encode(array("mensaje" => "Error al modificar la mesa en la base de datos"));

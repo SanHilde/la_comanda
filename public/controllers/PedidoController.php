@@ -1,5 +1,6 @@
 <?php
 require_once './models/Pedido.php';
+require_once './models/Producto.php';
 require_once './interfaces/IApiUsable.php';
 require_once './controllers/MesaController.php';
 require_once './controllers/PedidoController.php';
@@ -12,7 +13,7 @@ class PedidoController extends Pedido implements IApiUsable
         $usuario=LogInController::ObtenerData($request);
         //$usuario = $request->getAttribute('usuario');
         $codigo = $parametros['codigoPedido'] ?? null;
-        if(isset($parametros['cantidad']) || isset($parametros['producto']) || isset($parametros['mesa']) || isset($parametros['cantidad']))
+        if(isset($parametros['cantidad']) && isset($parametros['producto']) && isset($parametros['mesa']) && isset($parametros['cantidad']))
         {
             if(ProductoController::Validar($parametros['producto']))
             {
@@ -102,12 +103,40 @@ class PedidoController extends Pedido implements IApiUsable
     return $response->withHeader('Content-Type', 'application/json');
   }
 
+    public function CalcularCuenta($request, $response, $args)
+    {
+       // $parametros = $request->getQueryParams(); 
+        $parametros= $request->getParsedBody(); 
+        if (isset($parametros['codigo']) && isset($parametros['mesa']))
+        {
+            $id = $parametros['codigo'];
+            $mesa = $parametros['mesa'];
+            $lista = Pedido::obtenerTodos(null,null);
+            $listaDeCodigo = array();
+            $contador=0;
+            foreach($lista as $pedido)
+            {
+                if ($pedido->codigoPedido==$id && $pedido->mesa == $mesa)
+                {
+                    $producto = Producto::obtenerProducto($pedido->producto);
+                    $contador = $contador + ($producto->precio *$pedido->cantidad);
+                }      
+            }
+            $respuesta = "El total a cobrar es $$contador";
+            $payload = json_encode(array("mensaje" => $respuesta));
+        } else
+        {
+            $payload = json_encode(array("mensaje" => "Falta ingresar parametros"));
+        }
+        $response->getBody()->write($payload);
+        return $response->withHeader('Content-Type', 'application/json');
+      }
   
   public function TraerPorCodigo($request, $response, $args)
   {
 
     $parametros = $request->getQueryParams();  
-    if (isset($parametros['codigo']) || isset($parametros['mesa']))
+    if (isset($parametros['codigo']) && isset($parametros['mesa']))
     {
         $id = $parametros['codigo'];
         $mesa = $parametros['mesa'];
@@ -220,12 +249,12 @@ class PedidoController extends Pedido implements IApiUsable
                 }
                 if(isset ($parametros['estado']))
                 {
-                    if($parametros['estado']=="pendiente" || $parametros['estado']=="en proceso" || $parametros['estado']=="entregado" ||isset($parametros['estado'])==false )
+                    if($parametros['estado']=="pendiente" || $parametros['estado']=="en proceso" || $parametros['estado']=="entregado"|| $parametros['estado']=="listo para servir" ||isset($parametros['estado'])==false )
                     {
                         $pedido->estado = $parametros['estado']?? $pedido->estado;     
                     } else
                     {
-                        $payload = json_encode(array("mensaje" => "Estado inexistente, debe ser: pendiente, en proceso o entregado"));
+                        $payload = json_encode(array("mensaje" => "Estado inexistente, debe ser: pendiente, en proceso, listo para servir o entregado"));
                         $bandera=1;
                     }
                 }
