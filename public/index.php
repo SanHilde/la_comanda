@@ -13,8 +13,10 @@ require_once './controllers/UsuarioController.php';
 require_once './controllers/ProductoController.php';
 require_once './controllers/MesaController.php';
 require_once './controllers/PedidoController.php';
+require_once './controllers/EncuestaController.php';
 require_once './controllers/ArchivoController.php';
 require_once './controllers/LogInController.php';
+require_once './controllers/LogController.php';
 require_once './db/AccesoDatos.php';
 require_once './middlewares/SectorMiddleware.php';
 require_once './middlewares/AuthMiddleware.php';
@@ -43,10 +45,18 @@ $app->group('/', function (RouteCollectorProxy $group) {
 
 $app->group('/clientes', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerPorCodigo');
+  $group->post('[/]', \EncuestaController::class . ':CargarUno');
 });
 
 $app->group('/socio', function (RouteCollectorProxy $group) {
-  $group->get('[/]', \PedidoController::class . ':TraerPorCodigo')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/pedido', \PedidoController::class . ':TraerPorCodigo')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/pedidosVendidos', \PedidoController::class . ':TraerVendidos')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/pedidoEnTiempo', \PedidoController::class . ':TraerTodosEnTiempo')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/logs', \LogController::class . ':TraerTodos')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/{cantComentarios}', \EncuestaController::class . ':TraerMejoresComentarios')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/mesa/masUsada', \EncuestaController::class . ':TraerMesaMasUsada')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->post('/descargar', \ArchivoController::class . ':DescargaPDF')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  
 });
 $app->group('/mozo', function (RouteCollectorProxy $group) {
   $group->post('[/]', \PedidoController::class . ':CalcularCuenta')->add(SectorMiddleware::class .":authMozo")->add(new AuthMiddleware());
@@ -58,7 +68,7 @@ $app->group('/exportar', function (RouteCollectorProxy $group) {
 $app->group('/importar', function (RouteCollectorProxy $group) {
   $group->post('[/]', \ArchivoController::class . ':ImportarArchivo')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
 });
-// peticiones
+
 $app->group('/usuarios', function (RouteCollectorProxy $group) {
     $group->get('[/]', \UsuarioController::class . ':TraerTodos')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
     $group->get('/{usuario}', \UsuarioController::class . ':TraerUno')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
@@ -85,10 +95,18 @@ $app->group('/mesas', function (RouteCollectorProxy $group) {
 
 $app->group('/pedidos', function (RouteCollectorProxy $group) {
   $group->get('[/]', \PedidoController::class . ':TraerTodos')->add(new AuthMiddleware());
-  $group->get('/{id}', \PedidoController::class . ':TraerUno')->add(new AuthMiddleware());;  // Ruta para obtener un pedido por su ID
+  $group->get('/{id}', \PedidoController::class . ':TraerUno')->add(new AuthMiddleware());  // Ruta para obtener un pedido por su ID
   $group->post('[/]', \PedidoController::class . ':CargarUno')->add(SectorMiddleware::class .":authMozo")->add(new AuthMiddleware());
   $group->put('[/]', \PedidoController::class . ':ModificarUno')->add(new AuthMiddleware());
   $group->delete('[/]', \PedidoController::class . ':BorrarUno')->add(SectorMiddleware::class .":authMozo")->add(new AuthMiddleware());
+});
+
+$app->group('/encuesta', function (RouteCollectorProxy $group) {
+  $group->get('[/]', \EncuestaController::class . ':TraerTodos')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->get('/{pedido}', \EncuestaController::class . ':TraerUno')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->post('[/]', \EncuestaController::class . ':CargarUno')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->put('[/]', \EncuestaController::class . ':ModificarUno')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
+  $group->delete('[/]', \EncuestaController::class . ':BorrarUno')->add(SectorMiddleware::class .":authSocio")->add(new AuthMiddleware());
 });
 
 

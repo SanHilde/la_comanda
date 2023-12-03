@@ -27,6 +27,8 @@ class LogInController
             if ($usuario != false && $usuario->nombre === $nombre && $usuario->clave === $clave)
             {
                 $datos = array('usuario' => $usuario->nombre, 'sector' => $usuario->sector, 'id' => $usuario->id);
+                $logController = new LogController();
+                $logController->agregarLog($usuario->nombre,"LogIn");
                 $token = AutentificadorJWT::CrearToken($datos);
                 $payload = json_encode(array("mensaje" => "Bienvenido $nombre, tu sector es: $usuario->sector", 'jwt' => $token));
                 // $response->getBody()->write($payload);

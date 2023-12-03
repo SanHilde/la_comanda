@@ -6,6 +6,9 @@ class ProductoController extends Producto implements IApiUsable
 {
   public function CargarUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Cargar un producto");
       $parametros = $request->getParsedBody();
       
       if(isset($parametros['descripcion']) && isset($parametros['precio']) && isset($parametros['sector']) )
@@ -36,6 +39,9 @@ class ProductoController extends Producto implements IApiUsable
 
   public function TraerUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Traer un producto");
       // Buscamos Producto por nombre
       $nombre = $args['producto']; // Suponiendo que el nombre del producto se obtiene de los parámetros de la ruta
     // $parametros = $request->getParsedBody();
@@ -64,6 +70,9 @@ class ProductoController extends Producto implements IApiUsable
 
   public function TraerTodos($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Traer todos los productos");
       $lista = Producto::obtenerTodos();
       $payload = json_encode($lista);
   
@@ -73,6 +82,9 @@ class ProductoController extends Producto implements IApiUsable
     
   public function ModificarUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Modificar un producto");
       $parametros = $request->getParsedBody();
   
      // Suponiendo que el nombre del producto se pasa en el cuerpo de la solicitud
@@ -107,6 +119,9 @@ class ProductoController extends Producto implements IApiUsable
 
   public function BorrarUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Borrar un producto");
       $parametros = $request->getParsedBody();
         if (isset($parametros['producto']))
         {

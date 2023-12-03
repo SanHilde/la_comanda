@@ -6,6 +6,9 @@ class UsuarioController extends Usuario implements IApiUsable
 {
   public function CargarUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Cargar un usuario");
       $parametros = $request->getParsedBody();
     if ( isset($parametros['nombre']) && isset($parametros['clave']) && isset($parametros['sector']) )
     {
@@ -40,6 +43,9 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function TraerUno($request, $response, $args)
     {
+      $usuario=LogInController::ObtenerData($request);
+      $logController = new LogController();
+      $logController->agregarLog($usuario->usuario,"Traer un usuario");
         // Buscamos usuario por nombre
         $usr = $args['usuario'];
         $usuario = Usuario::obtenerUsuario($usr);
@@ -61,6 +67,9 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function ModificarUno($request, $response, $args)
     {
+      $usuario=LogInController::ObtenerData($request);
+      $logController = new LogController();
+      $logController->agregarLog($usuario->usuario,"Modificar un usuario");
         $parametros = $request->getParsedBody();
         
         if(isset($parametros['usuarioNuevo']) && isset($parametros['clave']) && isset($parametros['sector']) && isset($parametros['usuario']) )
@@ -103,6 +112,9 @@ class UsuarioController extends Usuario implements IApiUsable
 
     public function BorrarUno($request, $response, $args)
     {
+      $usuario=LogInController::ObtenerData($request);
+      $logController = new LogController();
+      $logController->agregarLog($usuario->usuario,"Borrar un usuario");
         $parametros = $request->getParsedBody();
       if(isset($parametros['usuario']))
       {

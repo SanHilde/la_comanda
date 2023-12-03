@@ -9,11 +9,14 @@ class PedidoController extends Pedido implements IApiUsable
 {
     public function CargarUno($request, $response, $args)
     {
+        
         $parametros = $request->getParsedBody();
         $usuario=LogInController::ObtenerData($request);
+        $logController = new LogController();
+        $logController->agregarLog($usuario->usuario,"Cargar un pedido");
         //$usuario = $request->getAttribute('usuario');
         $codigo = $parametros['codigoPedido'] ?? null;
-        if(isset($parametros['cantidad']) && isset($parametros['producto']) && isset($parametros['mesa']) && isset($parametros['cantidad']))
+        if(isset($parametros['cantidad']) && isset($parametros['producto']) && isset($parametros['mesa']))
         {
             if(ProductoController::Validar($parametros['producto']))
             {
@@ -39,7 +42,8 @@ class PedidoController extends Pedido implements IApiUsable
                     $pedido->fecha = date('Y-m-d H:i:s');
                     $pedido->estado = "pendiente";
                     $pedido->sector = $producto->sector; 
-                    $pedido->tiempoPreparacion = 0;    
+                    $pedido->tiempoPreparacion = 0; 
+                    $pedido->tiempoEntrega = 0;    
                     if($pedido->crearUno())
                     {
                         $payload = json_encode(array("mensaje" => "Pedido creado con éxito. Codigo de pedido: $codigo"));
@@ -69,6 +73,9 @@ class PedidoController extends Pedido implements IApiUsable
     
     public function TraerUno($request, $response, $args)
     {
+        $usuario=LogInController::ObtenerData($request);
+        $logController = new LogController();
+        $logController->agregarLog($usuario->usuario,"Traer un pedido");
         // Buscamos pedido por id
         $id = $args['id']; // Suponiendo que el ID del pedido se obtiene de los parámetros de la ruta
         $pedido = Pedido::obtenerPedido($id);
@@ -87,8 +94,10 @@ class PedidoController extends Pedido implements IApiUsable
 
   public function TraerTodos($request, $response, $args)
   {
-    $parametros = $request->getQueryParams();
     $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Traer todos los pedidos");
+    $parametros = $request->getQueryParams();
     //$usuario = $request->getAttribute('usuario');
     $estado = $parametros['estado'] ?? null;
     $sector = $usuario->sector;
@@ -103,8 +112,95 @@ class PedidoController extends Pedido implements IApiUsable
     return $response->withHeader('Content-Type', 'application/json');
   }
 
+  public function TraerVendidos($request, $response, $args)
+  {
+      $parametros = $request->getQueryParams();
+      $listaProductos = Producto::obtenerTodos();
+      $listaDePedidos = Pedido::obtenerTodos(null, null);
+      $usuario=LogInController::ObtenerData($request);
+      $logController = new LogController();
+      $logController->agregarLog($usuario->usuario,"Traer pedidos vendidos");
+      $ventaDeProductos = array();
+  
+      foreach ($listaProductos as $producto) {
+          $productoVendido = [
+              'descripcion' => $producto->descripcion,
+              'cantidad' => 0
+          ];
+          $ventaDeProductos[$producto->descripcion] = $productoVendido;
+      }
+  
+      foreach ($listaDePedidos as $pedido) {
+          $productoDescripcion = $pedido->producto;
+          $ventaDeProductos[$productoDescripcion]['cantidad'] += $pedido->cantidad;
+      }
+  
+      usort($ventaDeProductos, function ($a, $b) {
+          return $b['cantidad'] - $a['cantidad'];
+      });
+      if ($parametros["vendido"] == "mas vendido") {
+          $producto = $ventaDeProductos[0]['descripcion'];
+          $cantidad = $ventaDeProductos[0]['cantidad'];
+          $payload = json_encode(array("mensaje" => "El producto más vendido es $producto con $cantidad"));
+      } else {
+          $ultimoIndice = count($ventaDeProductos) - 1;
+          $producto = $ventaDeProductos[$ultimoIndice]['descripcion'];
+          $cantidad = $ventaDeProductos[$ultimoIndice]['cantidad'];
+          $payload = json_encode(array("mensaje" => "El producto menos vendido es $producto con $cantidad"));
+      }
+  
+      $response->getBody()->write($payload);
+      return $response->withHeader('Content-Type', 'application/json');
+  }
+  
+  
+
+  public function TraerTodosEnTiempo($request, $response, $args)
+  {
+    $parametros = $request->getQueryParams();
+    $responeTraer = clone $response;
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Traer todos los pedidos en tiempo");
+    self::TraerTodos($request, $responeTraer, $args);
+    $lista = json_decode($responeTraer->getBody());
+    $listaEnTiempo= array();
+    if(isset ($parametros['tiempo']))
+    {
+
+        if ($parametros['tiempo']=="atrasados")
+        {
+            foreach($lista  as $pedido)
+            {
+                if ($pedido->tiempoEntrega <0)
+                {
+                    array_push($listaEnTiempo,$pedido);
+                }
+            }
+        } else
+        {
+            foreach($lista  as $pedido)
+            {
+                if ($pedido->tiempoEntrega>=0)
+                {
+                    array_push($listaEnTiempo,$pedido);
+                }
+            }
+        }
+    } else
+    {
+        $payload = json_encode(array("mensaje" => "Falta ingresar parametros"));
+    }
+    $payload = json_encode($listaEnTiempo);
+    $response->getBody()->write($payload);
+    return $response->withHeader('Content-Type', 'application/json');
+  }
+
     public function CalcularCuenta($request, $response, $args)
     {
+        $usuario=LogInController::ObtenerData($request);
+        $logController = new LogController();
+        $logController->agregarLog($usuario->usuario,"Calcular cuenta");
        // $parametros = $request->getQueryParams(); 
         $parametros= $request->getParsedBody(); 
         if (isset($parametros['codigo']) && isset($parametros['mesa']))
@@ -186,6 +282,9 @@ class PedidoController extends Pedido implements IApiUsable
   
   public function ModificarUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Modificar un pedido");
     $bandera = 0;
       $parametros = $request->getParsedBody();  
       if (isset($parametros['id']))
@@ -245,7 +344,21 @@ class PedidoController extends Pedido implements IApiUsable
                 if ($usuario->sector == $pedido->sector )
                 {
                     $pedido->tiempoPreparacion = $parametros['tiempoPreparacion'] ?? $pedido->tiempoPreparacion;
-                    $pedido->fecha = date('Y-m-d H:i:s');
+                    if($parametros['estado']=="en proceso" )
+                    {
+                        $pedido->fecha = date('Y-m-d H:i:s');
+                    }
+                    if ($parametros['estado'] == "listo para servir") {
+                        if (isset($pedido->fecha, $pedido->tiempoPreparacion)) {
+                            $fechaConvertida = new DateTime($pedido->fecha);
+                            $fechaConvertida->add(new DateInterval('PT' . $pedido->tiempoPreparacion . 'M'));
+                            $tiempoActual = new DateTime();
+                            $tiempoRestante = $fechaConvertida->getTimestamp() - $tiempoActual->getTimestamp();
+                            $pedido->tiempoEntrega = $tiempoRestante / 60;
+                        } else {
+                            $pedido->tiempoEntrega = null;
+                        }
+                    } 
                 }
                 if(isset ($parametros['estado']))
                 {
@@ -289,6 +402,9 @@ class PedidoController extends Pedido implements IApiUsable
 
   public function BorrarUno($request, $response, $args)
   {
+    $usuario=LogInController::ObtenerData($request);
+    $logController = new LogController();
+    $logController->agregarLog($usuario->usuario,"Borrar un pedido");
       $parametros = $request->getParsedBody();
       if (isset($parametros['id']))
       {
