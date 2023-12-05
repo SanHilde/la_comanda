@@ -115,7 +115,6 @@ class MesaController extends Mesa implements IApiUsable
                                     {
                                         if ($pedidoTraido->codigoPedido==$pedido && $pedidoTraido->mesa == $mesa->id)
                                         {
-                                            echo ("entr2");
                                             $producto = Producto::obtenerProducto($pedidoTraido->producto);
                                             $pedidoTraido->estado = "entregado";
                                             $pedidoTraido->producto = $producto->id;
